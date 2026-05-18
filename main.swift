@@ -1,3 +1,11 @@
+// SleepTimer — menu-bar sleep timer for macOS.
+// Copyright (C) 2026 Alex Fitterling
+//
+// This program is free software: you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation, either version 3 of the License, or (at your option)
+// any later version. See <https://www.gnu.org/licenses/> for the full text.
+
 import Cocoa
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -16,7 +24,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.title = "💤"
+        if let button = statusItem.button {
+            let config = NSImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
+            let image = NSImage(systemSymbolName: "moon.zzz.fill", accessibilityDescription: "Sleep Timer")?
+                .withSymbolConfiguration(config)
+            image?.isTemplate = true
+            button.image = image
+            button.imagePosition = .imageLeft
+            button.font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .medium)
+        }
         rebuildMenu()
     }
 
@@ -88,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateTitle() {
         guard let sleepDate = sleepDate else {
-            statusItem.button?.title = "💤"
+            statusItem.button?.title = ""
             return
         }
         let remaining = max(0, Int(sleepDate.timeIntervalSinceNow.rounded()))
@@ -96,9 +112,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let m = (remaining % 3600) / 60
         let s = remaining % 60
         if h > 0 {
-            statusItem.button?.title = String(format: "💤 %d:%02d:%02d", h, m, s)
+            statusItem.button?.title = String(format: " %d:%02d:%02d", h, m, s)
         } else {
-            statusItem.button?.title = String(format: "💤 %d:%02d", m, s)
+            statusItem.button?.title = String(format: " %d:%02d", m, s)
         }
     }
 
@@ -108,7 +124,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         countdownTimer?.invalidate()
         countdownTimer = nil
         sleepDate = nil
-        statusItem.button?.title = "💤"
+        statusItem.button?.title = ""
         rebuildMenu()
     }
 

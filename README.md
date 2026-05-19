@@ -35,13 +35,41 @@ What the script does, step by step:
 5. Stages the bundle into `build/pkg-root/Applications/` and runs
    `pkgbuild --install-location /` to emit `SleepTimer-1.0.pkg`.
 
-## Install
+## Install to /Applications
 
-Double-click `build/SleepTimer-1.0.pkg` and follow the installer — it places
-`SleepTimer.app` in `/Applications`. Launch it from Spotlight or
-Finder; the moon-zzz icon appears in the menu bar.
+Pick whichever you prefer — all three end up with `SleepTimer.app` in
+`/Applications`. Launch it from Spotlight or Finder and the moon-zzz icon
+appears in the menu bar.
 
-Alternatively, just drag `build/SleepTimer.app` into `/Applications`.
+**Installer (GUI).** Double-click `build/SleepTimer-1.0.pkg` and click
+through the prompts.
+
+**Installer (CLI).** Useful for scripted setup:
+
+```sh
+sudo installer -pkg build/SleepTimer-1.0.pkg -target /
+```
+
+**Manual copy.** No installer at all:
+
+```sh
+cp -R build/SleepTimer.app /Applications/
+```
+
+> First launch: because the bundle is only ad-hoc signed (not notarized),
+> Gatekeeper may complain. Right-click the app in Finder → **Open**, then
+> confirm in the dialog. Subsequent launches are silent.
+
+To start it automatically at login: System Settings → General → Login Items
+→ **+** → pick `/Applications/SleepTimer.app`.
+
+### Uninstall
+
+```sh
+pkill -x SleepTimer
+rm -rf /Applications/SleepTimer.app
+sudo pkgutil --forget tech.sp33c.sleeptimer   # only if installed via .pkg
+```
 
 ## Run from source
 

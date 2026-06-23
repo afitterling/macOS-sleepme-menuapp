@@ -82,26 +82,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(titleItem)
         menu.addItem(.separator())
 
-        let wantSleep = NSMenuItem(title: "Dim Screen to 30% Brightness (Sleep Time)",
-                                   action: #selector(iWantToSleep),
-                                   keyEquivalent: "")
-        wantSleep.target = self
-        wantSleep.image = menuIcon("bed.double")
-        menu.addItem(wantSleep)
-        menu.addItem(.separator())
-
         if let sleepDate = sleepDate {
             let formatter = DateFormatter()
             formatter.timeStyle = .short
             let info = NSMenuItem(title: "Sleeping at \(formatter.string(from: sleepDate))",
                                   action: nil, keyEquivalent: "")
             info.isEnabled = false
+            info.image = menuIcon("moon.stars")
             menu.addItem(info)
 
             let cancel = NSMenuItem(title: "Cancel Timer",
                                     action: #selector(cancelTimer),
                                     keyEquivalent: "")
             cancel.target = self
+            cancel.image = menuIcon("xmark.circle")
             menu.addItem(cancel)
             menu.addItem(.separator())
         }
@@ -112,6 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                   keyEquivalent: "")
             item.representedObject = seconds
             item.target = self
+            item.image = menuIcon("clock")
             menu.addItem(item)
         }
 
@@ -119,12 +114,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                 action: #selector(customTimer),
                                 keyEquivalent: "")
         custom.target = self
+        custom.image = menuIcon("slider.horizontal.3")
         menu.addItem(custom)
 
         let schedule = NSMenuItem(title: "Schedule a Time…",
                                   action: #selector(scheduleTime),
                                   keyEquivalent: "")
         schedule.target = self
+        schedule.image = menuIcon("calendar")
         menu.addItem(schedule)
 
         menu.addItem(.separator())
@@ -136,13 +133,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dimNow.image = menuIcon("moon.zzz")
         menu.addItem(dimNow)
 
-        let sleepNow = NSMenuItem(title: "Sleep Now",
-                                  action: #selector(sleepNowAction),
-                                  keyEquivalent: "")
-        sleepNow.target = self
-        sleepNow.image = menuIcon("powersleep")
-        menu.addItem(sleepNow)
-
         menu.addItem(.separator())
 
         let dim = NSMenuItem(title: "Dim Screen to 10% When Timer Set",
@@ -150,6 +140,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                              keyEquivalent: "")
         dim.target = self
         dim.state = dimWhenSet ? .on : .off
+        dim.image = menuIcon("moon")
         menu.addItem(dim)
 
         let reset = NSMenuItem(title: "Reset Timer on Activity",
@@ -157,6 +148,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                keyEquivalent: "")
         reset.target = self
         reset.state = resetOnActivity ? .on : .off
+        reset.image = menuIcon("arrow.clockwise")
         menu.addItem(reset)
 
         let settings = NSMenuItem(title: "Settings…",
@@ -172,12 +164,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                  action: nil,
                                  keyEquivalent: "")
         contact.isEnabled = false
+        contact.image = menuIcon("envelope")
         menu.addItem(contact)
 
         let quit = NSMenuItem(title: "Quit",
                               action: #selector(quitAction),
                               keyEquivalent: "q")
         quit.target = self
+        quit.image = menuIcon("power")
         menu.addItem(quit)
 
         statusItem.menu = menu

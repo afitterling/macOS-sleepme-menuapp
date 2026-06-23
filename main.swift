@@ -129,12 +129,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
-        let sleepNow = NSMenuItem(title: "Sleep Now",
-                                  action: #selector(sleepNowAction),
-                                  keyEquivalent: "")
-        sleepNow.target = self
-        sleepNow.image = menuIcon("moon.zzz")
-        menu.addItem(sleepNow)
+        let dimNow = NSMenuItem(title: "Dim Brightness to 30%",
+                                action: #selector(dimNowAction),
+                                keyEquivalent: "")
+        dimNow.target = self
+        dimNow.image = menuIcon("moon.zzz")
+        menu.addItem(dimNow)
 
         menu.addItem(.separator())
 
@@ -152,20 +152,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         reset.state = resetOnActivity ? .on : .off
         menu.addItem(reset)
 
-        let settings = NSMenuItem(title: "Settings…",
-                                  action: #selector(showSettings),
-                                  keyEquivalent: ",")
-        settings.target = self
-        settings.image = menuIcon("gearshape")
-        menu.addItem(settings)
-
         menu.addItem(.separator())
+
+        let contact = NSMenuItem(title: "Contact Maintainer",
+                                 action: nil,
+                                 keyEquivalent: "")
+        contact.isEnabled = false
+        menu.addItem(contact)
 
         let quit = NSMenuItem(title: "Quit",
                               action: #selector(quitAction),
                               keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
+
+        let settings = NSMenuItem(title: "",
+                                  action: #selector(showSettings),
+                                  keyEquivalent: ",")
+        settings.target = self
+        settings.image = menuIcon("gearshape")
+        settings.toolTip = "Settings"
+        menu.addItem(settings)
 
         statusItem.menu = menu
     }
@@ -348,8 +355,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rebuildMenu()
     }
 
-    @objc private func sleepNowAction() {
-        sleepNow()
+    @objc private func dimNowAction() {
+        dimScreen(to: windDownBrightness)
     }
 
     private func sleepNow() {

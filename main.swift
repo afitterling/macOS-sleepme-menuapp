@@ -100,6 +100,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             menu.addItem(.separator())
         }
 
+        let sleepNow = NSMenuItem(title: "Sleep Now",
+                                  action: #selector(sleepNowAction),
+                                  keyEquivalent: "")
+        sleepNow.target = self
+        sleepNow.image = menuIcon("powersleep")
+        menu.addItem(sleepNow)
+        menu.addItem(.separator())
+
         for (label, seconds) in durations {
             let item = NSMenuItem(title: label,
                                   action: #selector(startTimer(_:)),
@@ -126,7 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
-        let dimNow = NSMenuItem(title: "Dim Brightness to 30%",
+        let dimNow = NSMenuItem(title: "Bedtime Lightning",
                                 action: #selector(dimNowAction),
                                 keyEquivalent: "")
         dimNow.target = self

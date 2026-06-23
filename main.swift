@@ -136,6 +136,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dimNow.image = menuIcon("moon.zzz")
         menu.addItem(dimNow)
 
+        let sleepNow = NSMenuItem(title: "Sleep Now",
+                                  action: #selector(sleepNowAction),
+                                  keyEquivalent: "")
+        sleepNow.target = self
+        sleepNow.image = menuIcon("powersleep")
+        menu.addItem(sleepNow)
+
         menu.addItem(.separator())
 
         let dim = NSMenuItem(title: "Dim Screen to 10% When Timer Set",
@@ -152,6 +159,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         reset.state = resetOnActivity ? .on : .off
         menu.addItem(reset)
 
+        let settings = NSMenuItem(title: "Settings…",
+                                  action: #selector(showSettings),
+                                  keyEquivalent: ",")
+        settings.target = self
+        settings.image = menuIcon("gearshape")
+        menu.addItem(settings)
+
         menu.addItem(.separator())
 
         let contact = NSMenuItem(title: "Contact Maintainer",
@@ -165,14 +179,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                               keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
-
-        let settings = NSMenuItem(title: "",
-                                  action: #selector(showSettings),
-                                  keyEquivalent: ",")
-        settings.target = self
-        settings.image = menuIcon("gearshape")
-        settings.toolTip = "Settings"
-        menu.addItem(settings)
 
         statusItem.menu = menu
     }
@@ -357,6 +363,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func dimNowAction() {
         dimScreen(to: windDownBrightness)
+    }
+
+    @objc private func sleepNowAction() {
+        sleepNow()
     }
 
     private func sleepNow() {

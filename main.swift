@@ -149,7 +149,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
-        let dim = NSMenuItem(title: "Dim Screen to 10% When Timer Set",
+        let dim = NSMenuItem(title: "Wind Down the Lights When Timer's Up",
                              action: #selector(toggleDim),
                              keyEquivalent: "")
         dim.target = self
@@ -242,13 +242,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         updateTitle()
         rebuildMenu()
-        showRunWindow()
-
-        if dimWhenSet {
-            // Dim the screen to 10% as soon as a timer starts. The countdown
-            // keeps running, and brightness restores on mouse move or after 1m.
-            dimScreen(to: setDimBrightness)
-        }
     }
 
     private func handleTick() {
@@ -386,6 +379,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func sleepNow() {
+        // Wind the lights down to 10% when the timer's up.
+        if dimWhenSet { dimScreen(to: setDimBrightness) }
         if stopMusicWhenAsleep { pauseMusic() }
         runPmset(["sleepnow"])
         cancelTimer()

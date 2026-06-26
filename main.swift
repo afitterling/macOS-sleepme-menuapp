@@ -1,4 +1,4 @@
-// SleepTimer — menu-bar sleep timer for macOS.
+// Lunair — menu-bar sleep timer for macOS.
 // Copyright (C) 2026 Alex Fitterling
 //
 // This program is free software: you can redistribute it and/or modify it
@@ -55,7 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
             let config = NSImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
-            let image = NSImage(systemSymbolName: "moon.zzz.fill", accessibilityDescription: "Sleep Timer")?
+            let image = NSImage(systemSymbolName: "moon.zzz.fill", accessibilityDescription: "Lunair")?
                 .withSymbolConfiguration(config)
             image?.isTemplate = true
             button.image = image
@@ -157,12 +157,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(settings)
 
         if Store.shared.isPro {
-            let pro = NSMenuItem(title: "BedTime Pro — Unlocked", action: nil, keyEquivalent: "")
+            let pro = NSMenuItem(title: "Lunair Pro — Unlocked", action: nil, keyEquivalent: "")
             pro.isEnabled = false
             pro.image = menuIcon("crown")
             menu.addItem(pro)
         } else {
-            let pro = NSMenuItem(title: "Unlock BedTime Pro…",
+            let pro = NSMenuItem(title: "Unlock Lunair Pro…",
                                  action: #selector(showPaywall),
                                  keyEquivalent: "")
             pro.target = self
@@ -504,7 +504,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func scheduleTime() {
-        // Scheduling is a BedTime Pro feature.
+        // Scheduling is a Lunair Pro feature.
         guard Store.shared.isPro else {
             Paywall.shared.show()
             return
@@ -644,7 +644,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func contactMaintainer() {
-        if let url = URL(string: "https://bedtime.sp33c.tech/support") {
+        if let url = URL(string: "https://sleeptimer.sp33c.tech/support") {
             NSWorkspace.shared.open(url)
         }
     }

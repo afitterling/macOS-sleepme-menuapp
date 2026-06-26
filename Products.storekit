@@ -9,12 +9,12 @@
       "localizations" : [
         {
           "description" : "Unlock scheduling and every future Pro feature — a one-time purchase, yours forever.",
-          "displayName" : "BedTime Pro",
+          "displayName" : "Lunair Pro",
           "locale" : "en_US"
         }
       ],
-      "productID" : "tech.sp33c.bedtime.pro",
-      "referenceName" : "BedTime Pro",
+      "productID" : "tech.sp33c.sleeptimer.pro",
+      "referenceName" : "Lunair Pro",
       "type" : "NonConsumable"
     }
   ],

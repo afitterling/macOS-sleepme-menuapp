@@ -1,4 +1,4 @@
-name: BedTime
+name: Lunair
 
 options:
   bundleIdPrefix: tech.sp33c
@@ -10,12 +10,12 @@ settings:
   base:
     DEVELOPMENT_TEAM: Q2ZG8FQS59
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "14"
+    MARKETING_VERSION: "1.2.2"
+    CURRENT_PROJECT_VERSION: "2"
     CODE_SIGN_STYLE: Automatic
 
 targets:
-  BedTime:
+  Lunair:
     type: application
     platform: macOS
     sources:
@@ -23,28 +23,31 @@ targets:
       - path: Store.swift
       - path: Paywall.swift
       - path: Products.storekit
-      - path: BedTime.entitlements
+      - path: Lunair.entitlements
+      - path: Assets.xcassets
     settings:
       base:
-        PRODUCT_NAME: BedTime
-        PRODUCT_BUNDLE_IDENTIFIER: tech.sp33c.bedtime
+        PRODUCT_NAME: Lunair
+        PRODUCT_BUNDLE_IDENTIFIER: tech.sp33c.sleeptimer
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_LSUIElement: YES
-        INFOPLIST_KEY_CFBundleDisplayName: BedTime
-        CODE_SIGN_ENTITLEMENTS: BedTime.entitlements
+        INFOPLIST_KEY_CFBundleDisplayName: Lunair
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_ENTITLEMENTS: Lunair.entitlements
         ENABLE_HARDENED_RUNTIME: YES
-        MARKETING_VERSION: "1.0"
+        MARKETING_VERSION: "1.2.2"
 schemes:
-  BedTime:
+  Lunair:
     build:
       targets:
-        BedTime: all
+        Lunair: all
     run:
       config: Debug
-  BedTime (StoreKit Test):
+  Lunair (StoreKit Test):
     build:
       targets:
-        BedTime: all
+        Lunair: all
     run:
       config: Debug
       storeKitConfiguration: Products.storekit

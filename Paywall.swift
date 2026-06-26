@@ -1,4 +1,4 @@
-// Minimal AppKit paywall for the BedTime Pro one-time unlock.
+// Minimal AppKit paywall for the Lunair Pro one-time unlock.
 
 import AppKit
 
@@ -26,10 +26,10 @@ final class Paywall {
             contentRect: NSRect(x: 0, y: 0, width: 360, height: 230),
             styleMask: [.titled, .closable],
             backing: .buffered, defer: false)
-        window.title = "BedTime Pro"
+        window.title = "Lunair Pro"
         window.isReleasedWhenClosed = false
 
-        let title = label("Unlock BedTime Pro", font: .boldSystemFont(ofSize: 18),
+        let title = label("Unlock Lunair Pro", font: .boldSystemFont(ofSize: 18),
                           color: .labelColor)
         let blurb = label("A one-time purchase unlocks scheduling and every future Pro feature — forever.",
                           font: .systemFont(ofSize: 12), color: .secondaryLabelColor)
@@ -74,7 +74,7 @@ final class Paywall {
     private func refresh() {
         let store = Store.shared
         if store.isPro {
-            statusLabel?.stringValue = "✓ BedTime Pro is unlocked. Thank you!"
+            statusLabel?.stringValue = "✓ Lunair Pro is unlocked. Thank you!"
             buyButton?.title = "Unlocked"
             buyButton?.isEnabled = false
         } else {

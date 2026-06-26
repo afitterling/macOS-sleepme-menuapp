@@ -3,11 +3,11 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-APP_NAME="BedTime"
-BUNDLE_ID="tech.sp33c.bedtime"
+APP_NAME="Lunair"
+BUNDLE_ID="tech.sp33c.sleeptimer"
 TEAM_ID="Q2ZG8FQS59"
 
-# Marketing version and build number are set with ./set-version.sh and live
+# Marketing version and build number are set with ./setVersion and live
 # in the VERSION and BUILD_NUMBER files.
 VERSION="$(tr -d '[:space:]' < VERSION)"
 BUILD_NUMBER="$(tr -d '[:space:]' < BUILD_NUMBER)"
@@ -24,9 +24,13 @@ SIGN_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null \
     | head -1 | sed -E 's/.*"(.*)"/\1/')"
 
 rm -rf "$BUILD_DIR"
-mkdir -p "$APP_BUNDLE/Contents/MacOS"
+mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
 
 swiftc -O -o "$APP_BUNDLE/Contents/MacOS/$APP_NAME" main.swift Store.swift Paywall.swift
+
+# Regenerate the icon if missing, then bundle it.
+[ -f AppIcon.icns ] || ./make-icon.sh
+cp AppIcon.icns "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
 
 cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -34,12 +38,14 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>             <string>$APP_NAME</string>
-    <key>CFBundleDisplayName</key>      <string>BedTime</string>
+    <key>CFBundleDisplayName</key>      <string>Lunair</string>
     <key>CFBundleIdentifier</key>       <string>$BUNDLE_ID</string>
     <key>CFBundleVersion</key>          <string>$BUILD_NUMBER</string>
     <key>CFBundleShortVersionString</key><string>$VERSION</string>
     <key>CFBundleExecutable</key>       <string>$APP_NAME</string>
+    <key>CFBundleIconFile</key>         <string>AppIcon</string>
     <key>CFBundlePackageType</key>      <string>APPL</string>
+    <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
     <key>LSUIElement</key>              <true/>
     <key>LSMinimumSystemVersion</key>   <string>13.0</string>
 </dict>

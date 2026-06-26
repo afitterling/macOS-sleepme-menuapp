@@ -2,8 +2,8 @@
 # Set the marketing version and build number, sync them into the Xcode
 # project, and open it.
 #
-#   ./set-version.sh              # prompt for both (current values as defaults)
-#   ./set-version.sh 1.1 14       # non-interactive
+#   ./setVersion              # prompt for both (current values as defaults)
+#   ./setVersion 1.1 14       # non-interactive
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -33,11 +33,11 @@ printf '%s\n' "$BUILD" > BUILD_NUMBER
 
 if command -v xcodegen >/dev/null 2>&1; then
     xcodegen generate >/dev/null
-    echo "Regenerated BedTime.xcodeproj"
+    echo "Regenerated Lunair.xcodeproj"
 else
     echo "xcodegen not found — skipping project regeneration (brew install xcodegen)"
 fi
 
 echo "Version $VERSION (build $BUILD)"
 
-open BedTime.xcodeproj
+open Lunair.xcodeproj

@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "90F9A2C0E389C666CEE5644A"
-               BuildableName = "BedTime.app"
-               BlueprintName = "BedTime"
-               ReferencedContainer = "container:BedTime.xcodeproj">
+               BlueprintIdentifier = "EE0440472F32828094E88391"
+               BuildableName = "Lunair.app"
+               BlueprintName = "Lunair"
+               ReferencedContainer = "container:Lunair.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,10 +32,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "90F9A2C0E389C666CEE5644A"
-            BuildableName = "BedTime.app"
-            BlueprintName = "BedTime"
-            ReferencedContainer = "container:BedTime.xcodeproj">
+            BlueprintIdentifier = "EE0440472F32828094E88391"
+            BuildableName = "Lunair.app"
+            BlueprintName = "Lunair"
+            ReferencedContainer = "container:Lunair.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -55,10 +55,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "90F9A2C0E389C666CEE5644A"
-            BuildableName = "BedTime.app"
-            BlueprintName = "BedTime"
-            ReferencedContainer = "container:BedTime.xcodeproj">
+            BlueprintIdentifier = "EE0440472F32828094E88391"
+            BuildableName = "Lunair.app"
+            BlueprintName = "Lunair"
+            ReferencedContainer = "container:Lunair.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -77,10 +77,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "90F9A2C0E389C666CEE5644A"
-            BuildableName = "BedTime.app"
-            BlueprintName = "BedTime"
-            ReferencedContainer = "container:BedTime.xcodeproj">
+            BlueprintIdentifier = "EE0440472F32828094E88391"
+            BuildableName = "Lunair.app"
+            BlueprintName = "Lunair"
+            ReferencedContainer = "container:Lunair.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

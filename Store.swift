@@ -1,4 +1,4 @@
-// StoreKit 2 gating for BedTime Pro — a single non-consumable unlock.
+// StoreKit 2 gating for Lunair Pro — a single non-consumable unlock.
 //
 // The source of truth for the unlock is StoreKit's current entitlements. We
 // also mirror the flag into the iCloud key-value store so the unlocked state
@@ -12,7 +12,7 @@ import StoreKit
 @MainActor
 final class Store {
     static let shared = Store()
-    static let proProductID = "tech.sp33c.bedtime.pro"
+    static let proProductID = "tech.sp33c.sleeptimer.pro"
 
     private(set) var proProduct: Product?
     private(set) var isPro = false
@@ -50,7 +50,7 @@ final class Store {
             proProduct = try await Product.products(for: [Self.proProductID]).first
             onChange?()
         } catch {
-            NSLog("BedTime: failed to load products — \(error)")
+            NSLog("Lunair: failed to load products — \(error)")
         }
     }
 
@@ -83,7 +83,7 @@ final class Store {
                 break
             }
         } catch {
-            NSLog("BedTime: purchase failed — \(error)")
+            NSLog("Lunair: purchase failed — \(error)")
         }
         return false
     }

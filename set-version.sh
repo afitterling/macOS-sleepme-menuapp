@@ -1,0 +1,43 @@
+#!/bin/bash
+# Set the marketing version and build number, sync them into the Xcode
+# project, and open it.
+#
+#   ./set-version.sh              # prompt for both (current values as defaults)
+#   ./set-version.sh 1.1 14       # non-interactive
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+CUR_VERSION="$(tr -d '[:space:]' < VERSION 2>/dev/null || echo 1.0)"
+CUR_BUILD="$(tr -d '[:space:]' < BUILD_NUMBER 2>/dev/null || echo 1)"
+
+VERSION="${1:-}"
+BUILD="${2:-}"
+
+if [ -z "$VERSION" ]; then
+    read -r -p "Marketing version [$CUR_VERSION]: " VERSION
+    VERSION="${VERSION:-$CUR_VERSION}"
+fi
+if [ -z "$BUILD" ]; then
+    read -r -p "Build number [$CUR_BUILD]: " BUILD
+    BUILD="${BUILD:-$CUR_BUILD}"
+fi
+
+# Persist for build.sh and the Xcode project generator.
+printf '%s\n' "$VERSION" > VERSION
+printf '%s\n' "$BUILD" > BUILD_NUMBER
+
+# Mirror into project.yml so the generated Xcode project carries them.
+/usr/bin/sed -i '' -E "s/(MARKETING_VERSION: ).*/\1\"$VERSION\"/" project.yml
+/usr/bin/sed -i '' -E "s/(CURRENT_PROJECT_VERSION: ).*/\1\"$BUILD\"/" project.yml
+
+if command -v xcodegen >/dev/null 2>&1; then
+    xcodegen generate >/dev/null
+    echo "Regenerated BedTime.xcodeproj"
+else
+    echo "xcodegen not found — skipping project regeneration (brew install xcodegen)"
+fi
+
+echo "Version $VERSION (build $BUILD)"
+
+open BedTime.xcodeproj

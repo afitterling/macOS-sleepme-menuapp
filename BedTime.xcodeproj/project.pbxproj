@@ -52,7 +52,6 @@
 			buildPhases = (
 				4C30BE18E804EA087F0C0AB2 /* Sources */,
 				CA1712B5B8DC7C4DBF36C746 /* Resources */,
-				D2D2EFECF2C7DC8FE9F136F2 /* Set build number from git */,
 			);
 			buildRules = (
 			);
@@ -109,28 +108,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		D2D2EFECF2C7DC8FE9F136F2 /* Set build number from git */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Set build number from git";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "set -e\ncount=\"$(git -C \"$PROJECT_DIR\" rev-list --count HEAD 2>/dev/null || echo 1)\"\nplist=\"$BUILT_PRODUCTS_DIR/$INFOPLIST_PATH\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $count\" \"$plist\" || \\\n  /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string $count\" \"$plist\"\necho \"Set CFBundleVersion to $count\"\n";
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		4C30BE18E804EA087F0C0AB2 /* Sources */ = {
@@ -202,7 +179,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 14;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = Q2ZG8FQS59;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -269,7 +246,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 14;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = Q2ZG8FQS59;
 				ENABLE_NS_ASSERTIONS = NO;

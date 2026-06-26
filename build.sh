@@ -7,10 +7,10 @@ APP_NAME="BedTime"
 BUNDLE_ID="tech.sp33c.bedtime"
 TEAM_ID="Q2ZG8FQS59"
 
-# Marketing version lives in the VERSION file; the build number is derived
-# from the git history so every commit yields a unique, monotonic value.
+# Marketing version and build number are set with ./set-version.sh and live
+# in the VERSION and BUILD_NUMBER files.
 VERSION="$(tr -d '[:space:]' < VERSION)"
-BUILD_NUMBER="$(git rev-list --count HEAD 2>/dev/null || echo 1)"
+BUILD_NUMBER="$(tr -d '[:space:]' < BUILD_NUMBER)"
 
 BUILD_DIR="build"
 APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"

@@ -11,7 +11,7 @@ settings:
     DEVELOPMENT_TEAM: Q2ZG8FQS59
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    CURRENT_PROJECT_VERSION: "14"
     CODE_SIGN_STYLE: Automatic
 
 targets:
@@ -34,18 +34,6 @@ targets:
         CODE_SIGN_ENTITLEMENTS: BedTime.entitlements
         ENABLE_HARDENED_RUNTIME: YES
         MARKETING_VERSION: "1.0"
-    # Stamp the build number from the git commit count into the built bundle.
-    postBuildScripts:
-      - name: Set build number from git
-        basedOnDependencyAnalysis: false
-        script: |
-          set -e
-          count="$(git -C "$PROJECT_DIR" rev-list --count HEAD 2>/dev/null || echo 1)"
-          plist="$BUILT_PRODUCTS_DIR/$INFOPLIST_PATH"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $count" "$plist" || \
-            /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $count" "$plist"
-          echo "Set CFBundleVersion to $count"
-
 schemes:
   BedTime:
     build:

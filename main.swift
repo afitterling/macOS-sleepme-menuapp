@@ -155,9 +155,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
 
         let contact = NSMenuItem(title: "Contact Maintainer",
-                                 action: nil,
+                                 action: #selector(contactMaintainer),
                                  keyEquivalent: "")
-        contact.isEnabled = false
+        contact.target = self
         contact.image = menuIcon("envelope")
         menu.addItem(contact)
 
@@ -614,6 +614,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         label.font = font
         label.textColor = color
         return label
+    }
+
+    @objc private func contactMaintainer() {
+        if let url = URL(string: "https://bedtime.sp33c.tech/support") {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     @objc private func quitAction() {

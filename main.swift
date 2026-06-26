@@ -19,7 +19,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var currentDuration: TimeInterval?
     private var timerStartDate: Date?
     private var resetCount = 0
-    private var pendingDimOnly = false
 
     private var runWindow: NSWindow?
     private var nextLabel: NSTextField?
@@ -27,9 +26,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var remainingLabel: NSTextField?
     private var resetsLabel: NSTextField?
 
-    private var savedBrightness: Float?
-    private var brightnessMonitor: Any?
-    private var brightnessFallback: Timer?
+    // Dimming is done with translucent black overlay windows rather than by
+    // changing hardware brightness (the latter needs a private framework the
+    // App Sandbox forbids). `dimActivityTimer` polls for user input to lift
+    // the dim; `dimFallback` lifts it after a minute regardless.
+    private var dimWindows: [NSWindow] = []
+    private var dimActivityTimer: Timer?
+    private var dimFallback: Timer?
 
     private let dimDefaultsKey = "dimDisplayWhenSet"
     private var dimWhenSet: Bool {
@@ -62,8 +65,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.imagePosition = .imageLeft
             button.font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .medium)
         }
-        // Rebuild the menu whenever the Pro entitlement changes.
-        Store.shared.onChange = { [weak self] in self?.rebuildMenu() }
         rebuildMenu()
     }
 
@@ -106,20 +107,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             menu.addItem(item)
         }
 
-        let custom = NSMenuItem(title: "Custom…",
+        let custom = NSMenuItem(title: "Custom Time",
                                 action: #selector(customTimer),
                                 keyEquivalent: "")
         custom.target = self
         custom.image = menuIcon("slider.horizontal.3")
         menu.addItem(custom)
-
-        let scheduleLocked = !Store.shared.isPro
-        let schedule = NSMenuItem(title: scheduleLocked ? "Schedule a Time… (Pro)" : "Schedule a Time…",
-                                  action: #selector(scheduleTime),
-                                  keyEquivalent: "")
-        schedule.target = self
-        schedule.image = menuIcon(scheduleLocked ? "lock" : "calendar")
-        menu.addItem(schedule)
 
         menu.addItem(.separator())
 
@@ -149,26 +142,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(reset)
 
 
-        let settings = NSMenuItem(title: "Settings…",
+        let settings = NSMenuItem(title: "Settings",
                                   action: #selector(showSettings),
                                   keyEquivalent: ",")
         settings.target = self
         settings.image = menuIcon("gearshape")
         menu.addItem(settings)
-
-        if Store.shared.isPro {
-            let pro = NSMenuItem(title: "Lunair Pro — Unlocked", action: nil, keyEquivalent: "")
-            pro.isEnabled = false
-            pro.image = menuIcon("crown")
-            menu.addItem(pro)
-        } else {
-            let pro = NSMenuItem(title: "Unlock Lunair Pro…",
-                                 action: #selector(showPaywall),
-                                 keyEquivalent: "")
-            pro.target = self
-            pro.image = menuIcon("crown")
-            menu.addItem(pro)
-        }
 
         menu.addItem(.separator())
 
@@ -208,23 +187,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startTimer(seconds: seconds)
     }
 
-    private func startTimer(seconds: TimeInterval, dimOnly: Bool = false) {
+    private func startTimer(seconds: TimeInterval) {
         sleepTimer?.invalidate()
         countdownTimer?.invalidate()
 
         currentDuration = seconds
         timerStartDate = Date()
         resetCount = 0
-        pendingDimOnly = dimOnly
         sleepDate = Date().addingTimeInterval(seconds)
 
         sleepTimer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { [weak self] _ in
-            if dimOnly {
-                self?.iWantToSleep()
-                self?.cancelTimer()
-            } else {
-                self?.sleepNow()
-            }
+            self?.sleepNow()
         }
 
         countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
@@ -337,8 +310,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             remainingLabel?.stringValue = clock(Int(sleepDate.timeIntervalSinceNow.rounded()))
             let formatter = DateFormatter()
             formatter.timeStyle = .short
-            let action = pendingDimOnly ? "Dim to 30%" : "Sleep"
-            nextLabel?.stringValue = "Next: \(action) at \(formatter.string(from: sleepDate))"
+            nextLabel?.stringValue = "Next: Sleep at \(formatter.string(from: sleepDate))"
         }
         if let start = timerStartDate {
             elapsedLabel?.stringValue = "Elapsed: " + clock(Int(Date().timeIntervalSince(start).rounded()))
@@ -376,99 +348,97 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func sleepNow() {
-        runPmset(["sleepnow"])
+        sleepTheMac()
         cancelTimer()
     }
 
-    private func runPmset(_ arguments: [String]) {
-        let task = Process()
-        task.launchPath = "/usr/bin/pmset"
-        task.arguments = arguments
-        try? task.run()
+    // The App Sandbox forbids launching `pmset`, and macOS exposes no public
+    // sandbox-safe call to sleep the Mac. We drive System Events over Apple
+    // events instead — allowed by the apple-events temporary exception in the
+    // entitlements, gated behind a one-time Automation permission prompt.
+    private func sleepTheMac() {
+        let source = "tell application \"System Events\" to sleep"
+        var error: NSDictionary?
+        if let script = NSAppleScript(source: source) {
+            script.executeAndReturnError(&error)
+        }
+        if let error = error {
+            // -1743 is errAEEventNotPermitted: the user declined Automation
+            // access for System Events. Point them at the fix rather than
+            // failing silently.
+            if (error[NSAppleScript.errorNumber] as? Int) == -1743 {
+                warn("Lunair needs permission to control System Events to sleep "
+                   + "your Mac. Grant it in System Settings ▸ Privacy & Security "
+                   + "▸ Automation, then try again.")
+            }
+        }
     }
 
-    // MARK: - Brightness
+    // MARK: - Dimming
 
-    // "Sleep Time" winds the screen down to 30%; the "dim when timer set"
-    // toggle takes it lower, to 10%.
+    // The screen is dimmed by floating translucent black windows over every
+    // display. Values are expressed as a target perceived brightness so the
+    // call sites read the same as the old hardware-brightness code: winding
+    // down lands at 30%, the "dim when timer set" toggle goes lower, to 10%.
     private let windDownBrightness: Float = 0.30
     private let setDimBrightness: Float = 0.10
 
-    @objc private func iWantToSleep() {
-        dimScreen(to: windDownBrightness)
-    }
+    // How long the dim has been up; used to ignore the input that triggered it.
+    private let dimGrace: TimeInterval = 2
 
-    // Remember the current brightness, dim, then restore it the next time the
-    // user moves the mouse (after a short grace period so the click that
-    // triggered the dim doesn't immediately undo it).
-    private func dimScreen(to value: Float) {
-        if savedBrightness == nil { savedBrightness = currentDisplayBrightness() }
-        setDisplayBrightness(value)
-        armBrightnessRestore()
-        // Fall back to the original brightness after a minute even if the user
-        // never moves the mouse.
-        brightnessFallback?.invalidate()
-        brightnessFallback = Timer.scheduledTimer(withTimeInterval: 60, repeats: false) { [weak self] _ in
+    // Show (or re-target) the dim overlay, then lift it on the next user input
+    // after a short grace period — or after a minute, whichever comes first.
+    private func dimScreen(to brightness: Float) {
+        let alpha = CGFloat(1 - min(max(brightness, 0), 1))
+        showDimOverlay(alpha: alpha)
+        armDimRestore()
+        dimFallback?.invalidate()
+        dimFallback = Timer.scheduledTimer(withTimeInterval: 60, repeats: false) { [weak self] _ in
             self?.restoreBrightness()
         }
     }
 
-    private func armBrightnessRestore() {
-        if let monitor = brightnessMonitor {
-            NSEvent.removeMonitor(monitor)
-            brightnessMonitor = nil
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-            guard let self, self.savedBrightness != nil else { return }
-            self.brightnessMonitor = NSEvent.addGlobalMonitorForEvents(
-                matching: [.mouseMoved, .leftMouseDown, .rightMouseDown, .scrollWheel]
-            ) { [weak self] _ in
-                self?.restoreBrightness()
+    private func showDimOverlay(alpha: CGFloat) {
+        if dimWindows.isEmpty {
+            for screen in NSScreen.screens {
+                let window = NSWindow(contentRect: screen.frame, styleMask: .borderless,
+                                      backing: .buffered, defer: false)
+                window.isReleasedWhenClosed = false
+                window.backgroundColor = .black
+                window.isOpaque = false
+                window.hasShadow = false
+                window.ignoresMouseEvents = true       // purely visual; never steals input
+                window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+                window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
+                window.orderFrontRegardless()
+                dimWindows.append(window)
             }
+        }
+        for window in dimWindows { window.alphaValue = alpha }
+    }
+
+    // Poll for input rather than installing a global event monitor (the App
+    // Sandbox forbids the latter). `systemIdleSeconds()` resets to ~0 on any
+    // keyboard/mouse activity and needs no special permission.
+    private func armDimRestore() {
+        dimActivityTimer?.invalidate()
+        let armedAt = Date()
+        dimActivityTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            // Wait out the grace window so the click that dimmed the screen
+            // doesn't immediately lift it.
+            guard Date().timeIntervalSince(armedAt) > self.dimGrace else { return }
+            if self.systemIdleSeconds() < 1 { self.restoreBrightness() }
         }
     }
 
     private func restoreBrightness() {
-        brightnessFallback?.invalidate()
-        brightnessFallback = nil
-        if let monitor = brightnessMonitor {
-            NSEvent.removeMonitor(monitor)
-            brightnessMonitor = nil
-        }
-        guard let saved = savedBrightness else { return }
-        setDisplayBrightness(saved)
-        savedBrightness = nil
-    }
-
-    private func currentDisplayBrightness() -> Float {
-        let path = "/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices"
-        guard let handle = dlopen(path, RTLD_NOW) else { return windDownBrightness }
-        defer { dlclose(handle) }
-        guard let sym = dlsym(handle, "DisplayServicesGetBrightness") else { return windDownBrightness }
-        typealias GetBrightness = @convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32
-        let getBrightness = unsafeBitCast(sym, to: GetBrightness.self)
-        var value: Float = windDownBrightness
-        _ = getBrightness(CGMainDisplayID(), &value)
-        return value
-    }
-
-    private func setDisplayBrightness(_ value: Float) {
-        // DisplayServices is private but works across Intel and Apple Silicon
-        // without the accessibility permission a key-event approach would need.
-        let path = "/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices"
-        guard let handle = dlopen(path, RTLD_NOW) else { return }
-        defer { dlclose(handle) }
-        guard let sym = dlsym(handle, "DisplayServicesSetBrightness") else { return }
-        typealias SetBrightness = @convention(c) (CGDirectDisplayID, Float) -> Int32
-        let setBrightness = unsafeBitCast(sym, to: SetBrightness.self)
-
-        let clamped = min(max(value, 0), 1)
-        for screen in NSScreen.screens {
-            let key = NSDeviceDescriptionKey("NSScreenNumber")
-            if let number = screen.deviceDescription[key] as? NSNumber {
-                _ = setBrightness(number.uint32Value, clamped)
-            }
-        }
+        dimFallback?.invalidate()
+        dimFallback = nil
+        dimActivityTimer?.invalidate()
+        dimActivityTimer = nil
+        for window in dimWindows { window.orderOut(nil) }
+        dimWindows.removeAll()
     }
 
     @objc private func toggleDim() {
@@ -497,61 +467,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let trimmed = field.stringValue.trimmingCharacters(in: .whitespaces)
         guard let minutes = Double(trimmed), minutes > 0 else { return }
         startTimer(seconds: minutes * 60)
-    }
-
-    @objc private func showPaywall() {
-        Paywall.shared.show()
-    }
-
-    @objc private func scheduleTime() {
-        // Scheduling is a Lunair Pro feature.
-        guard Store.shared.isPro else {
-            Paywall.shared.show()
-            return
-        }
-        let alert = NSAlert()
-        alert.messageText = "Schedule a Time"
-        alert.informativeText = "Sleep at what time? (e.g. 23:30 or 11:30 PM)"
-        alert.addButton(withTitle: "Schedule")
-        alert.addButton(withTitle: "Cancel")
-
-        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
-        field.placeholderString = "HH:mm"
-        alert.accessoryView = field
-        alert.window.initialFirstResponder = field
-
-        NSApp.activate(ignoringOtherApps: true)
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-
-        let trimmed = field.stringValue.trimmingCharacters(in: .whitespaces)
-        guard let target = nextDate(matching: trimmed) else {
-            warn("Couldn't read that time. Try a format like 23:30 or 11:30 PM.")
-            return
-        }
-        // At the scheduled time, wind the display down to 30% rather than
-        // sleeping the Mac outright.
-        startTimer(seconds: target.timeIntervalSinceNow, dimOnly: true)
-    }
-
-    // Parse a clock time and return the next future Date that matches it,
-    // rolling over to tomorrow if the time has already passed today.
-    private func nextDate(matching text: String) -> Date? {
-        let formats = ["HH:mm", "H:mm", "h:mm a", "h a", "ha"]
-        let parser = DateFormatter()
-        parser.locale = Locale(identifier: "en_US_POSIX")
-        var components: DateComponents?
-        for format in formats {
-            parser.dateFormat = format
-            if let date = parser.date(from: text) {
-                components = Calendar.current.dateComponents([.hour, .minute], from: date)
-                break
-            }
-        }
-        guard let comps = components else { return nil }
-        let calendar = Calendar.current
-        guard let next = calendar.nextDate(after: Date(), matching: comps,
-                                           matchingPolicy: .nextTime) else { return nil }
-        return next
     }
 
     private func warn(_ message: String) {

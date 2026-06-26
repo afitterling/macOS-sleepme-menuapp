@@ -26,7 +26,7 @@ SIGN_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null \
 rm -rf "$BUILD_DIR"
 mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
 
-swiftc -O -o "$APP_BUNDLE/Contents/MacOS/$APP_NAME" main.swift Store.swift Paywall.swift
+swiftc -O -o "$APP_BUNDLE/Contents/MacOS/$APP_NAME" main.swift
 
 # Regenerate the icon if missing, then bundle it.
 [ -f AppIcon.icns ] || ./make-icon.sh
@@ -48,6 +48,7 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
     <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
     <key>LSUIElement</key>              <true/>
     <key>LSMinimumSystemVersion</key>   <string>13.0</string>
+    <key>NSAppleEventsUsageDescription</key><string>Lunair sleeps your Mac by asking System Events to sleep when a timer ends.</string>
 </dict>
 </plist>
 EOF
@@ -78,4 +79,4 @@ pkgbuild \
 echo "Built $PKG_FILE"
 
 # Open the project in Xcode (brings it forward if already running).
-open -a Xcode "$(pwd)"
+open Lunair.xcodeproj

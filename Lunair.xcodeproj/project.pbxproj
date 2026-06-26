@@ -9,19 +9,13 @@
 /* Begin PBXBuildFile section */
 		023A22C5931AEE84EDE1DD30 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5E7C756197CD4E072706179C /* Assets.xcassets */; };
 		0FD76FDB0A66DF70459870E4 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9411982E97640D67E9F8F1D5 /* main.swift */; };
-		2A9F8D811725D24DA628C449 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1659C972C9739135A9090BCE /* Store.swift */; };
-		5E375A4F4B13BA7CBFFC508D /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = D431167A506276C16BE8283E /* Products.storekit */; };
-		A298D7A1B74DEF08A11B5D65 /* Paywall.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AD10941DDCD23DA04CD6C78 /* Paywall.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		1659C972C9739135A9090BCE /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
-		3AD10941DDCD23DA04CD6C78 /* Paywall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Paywall.swift; sourceTree = "<group>"; };
 		5E7C756197CD4E072706179C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9411982E97640D67E9F8F1D5 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		A0C97C58AE11FC537E1A0028 /* Lunair.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lunair.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D2675D2E819E0C39E4D4A8A0 /* Lunair.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Lunair.entitlements; sourceTree = "<group>"; };
-		D431167A506276C16BE8283E /* Products.storekit */ = {isa = PBXFileReference; path = Products.storekit; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -39,9 +33,6 @@
 				5E7C756197CD4E072706179C /* Assets.xcassets */,
 				D2675D2E819E0C39E4D4A8A0 /* Lunair.entitlements */,
 				9411982E97640D67E9F8F1D5 /* main.swift */,
-				3AD10941DDCD23DA04CD6C78 /* Paywall.swift */,
-				D431167A506276C16BE8283E /* Products.storekit */,
-				1659C972C9739135A9090BCE /* Store.swift */,
 				2375CA45373196C2B047F45E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -107,7 +98,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				023A22C5931AEE84EDE1DD30 /* Assets.xcassets in Resources */,
-				5E375A4F4B13BA7CBFFC508D /* Products.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,8 +108,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A298D7A1B74DEF08A11B5D65 /* Paywall.swift in Sources */,
-				2A9F8D811725D24DA628C449 /* Store.swift in Sources */,
 				0FD76FDB0A66DF70459870E4 /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -138,6 +126,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Lunair;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Lunair sleeps your Mac by asking System Events to sleep when a timer ends.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -220,6 +209,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Lunair;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Lunair sleeps your Mac by asking System Events to sleep when a timer ends.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

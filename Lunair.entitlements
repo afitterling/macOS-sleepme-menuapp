@@ -2,15 +2,16 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>com.apple.developer.icloud-services</key>
+    <!-- App Store distribution requires the sandbox. -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <!-- There is no public sandbox API to sleep the Mac, so we drive
+         System Events over Apple events instead. This temporary exception
+         is scoped to that one target and triggers a one-time Automation
+         permission prompt. -->
+    <key>com.apple.security.temporary-exception.apple-events</key>
     <array>
-        <string>CloudKit</string>
+        <string>com.apple.systemevents</string>
     </array>
-    <key>com.apple.developer.icloud-container-identifiers</key>
-    <array>
-        <string>iCloud.tech.sp33c.sleeptimer</string>
-    </array>
-    <key>com.apple.developer.ubiquity-kvstore-identifier</key>
-    <string>$(TeamIdentifierPrefix)$(CFBundleIdentifier)</string>
 </dict>
 </plist>

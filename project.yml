@@ -20,9 +20,6 @@ targets:
     platform: macOS
     sources:
       - path: main.swift
-      - path: Store.swift
-      - path: Paywall.swift
-      - path: Products.storekit
       - path: Lunair.entitlements
       - path: Assets.xcassets
     settings:
@@ -33,6 +30,7 @@ targets:
         INFOPLIST_KEY_LSUIElement: YES
         INFOPLIST_KEY_CFBundleDisplayName: Lunair
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        INFOPLIST_KEY_NSAppleEventsUsageDescription: "Lunair sleeps your Mac by asking System Events to sleep when a timer ends."
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_ENTITLEMENTS: Lunair.entitlements
         ENABLE_HARDENED_RUNTIME: YES
@@ -44,10 +42,3 @@ schemes:
         Lunair: all
     run:
       config: Debug
-  Lunair (StoreKit Test):
-    build:
-      targets:
-        Lunair: all
-    run:
-      config: Debug
-      storeKitConfiguration: Products.storekit

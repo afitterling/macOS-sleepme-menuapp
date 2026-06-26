@@ -8,6 +8,7 @@
 
 import Cocoa
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var sleepTimer: Timer?
@@ -61,6 +62,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.imagePosition = .imageLeft
             button.font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .medium)
         }
+        // Rebuild the menu whenever the Pro entitlement changes.
+        Store.shared.onChange = { [weak self] in self?.rebuildMenu() }
         rebuildMenu()
     }
 
@@ -110,11 +113,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         custom.image = menuIcon("slider.horizontal.3")
         menu.addItem(custom)
 
-        let schedule = NSMenuItem(title: "Schedule a Time…",
+        let scheduleLocked = !Store.shared.isPro
+        let schedule = NSMenuItem(title: scheduleLocked ? "Schedule a Time… (Pro)" : "Schedule a Time…",
                                   action: #selector(scheduleTime),
                                   keyEquivalent: "")
         schedule.target = self
-        schedule.image = menuIcon("calendar")
+        schedule.image = menuIcon(scheduleLocked ? "lock" : "calendar")
         menu.addItem(schedule)
 
         menu.addItem(.separator())
@@ -151,6 +155,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settings.target = self
         settings.image = menuIcon("gearshape")
         menu.addItem(settings)
+
+        if Store.shared.isPro {
+            let pro = NSMenuItem(title: "BedTime Pro — Unlocked", action: nil, keyEquivalent: "")
+            pro.isEnabled = false
+            pro.image = menuIcon("crown")
+            menu.addItem(pro)
+        } else {
+            let pro = NSMenuItem(title: "Unlock BedTime Pro…",
+                                 action: #selector(showPaywall),
+                                 keyEquivalent: "")
+            pro.target = self
+            pro.image = menuIcon("crown")
+            menu.addItem(pro)
+        }
 
         menu.addItem(.separator())
 
@@ -481,7 +499,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startTimer(seconds: minutes * 60)
     }
 
+    @objc private func showPaywall() {
+        Paywall.shared.show()
+    }
+
     @objc private func scheduleTime() {
+        // Scheduling is a BedTime Pro feature.
+        guard Store.shared.isPro else {
+            Paywall.shared.show()
+            return
+        }
         let alert = NSAlert()
         alert.messageText = "Schedule a Time"
         alert.informativeText = "Sleep at what time? (e.g. 23:30 or 11:30 PM)"
@@ -627,8 +654,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-let app = NSApplication.shared
-app.setActivationPolicy(.accessory)
-let delegate = AppDelegate()
-app.delegate = delegate
-app.run()
+// Program entry. We're on the main thread at launch, so it's safe to assume
+// the main actor for the @MainActor-isolated AppDelegate.
+MainActor.assumeIsolated {
+    let app = NSApplication.shared
+    app.setActivationPolicy(.accessory)
+    let delegate = AppDelegate()
+    app.delegate = delegate
+    app.run()
+}

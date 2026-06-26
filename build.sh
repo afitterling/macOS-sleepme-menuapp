@@ -26,7 +26,7 @@ SIGN_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null \
 rm -rf "$BUILD_DIR"
 mkdir -p "$APP_BUNDLE/Contents/MacOS"
 
-swiftc -O -o "$APP_BUNDLE/Contents/MacOS/$APP_NAME" main.swift
+swiftc -O -o "$APP_BUNDLE/Contents/MacOS/$APP_NAME" main.swift Store.swift Paywall.swift
 
 cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -41,7 +41,7 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
     <key>CFBundleExecutable</key>       <string>$APP_NAME</string>
     <key>CFBundlePackageType</key>      <string>APPL</string>
     <key>LSUIElement</key>              <true/>
-    <key>LSMinimumSystemVersion</key>   <string>11.0</string>
+    <key>LSMinimumSystemVersion</key>   <string>13.0</string>
 </dict>
 </plist>
 EOF

@@ -1,0 +1,30 @@
+{
+  "identifier" : "B3D71E00-0001-4000-A000-BED71E000001",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "B3D71E00-0002-4000-A000-BED71E000002",
+      "localizations" : [
+        {
+          "description" : "Unlock scheduling and every future Pro feature — a one-time purchase, yours forever.",
+          "displayName" : "BedTime Pro",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "tech.sp33c.bedtime.pro",
+      "referenceName" : "BedTime Pro",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_storeKitErrors" : []
+  },
+  "subscriptionGroups" : [],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

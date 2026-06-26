@@ -42,12 +42,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         set { UserDefaults.standard.set(newValue, forKey: resetDefaultsKey) }
     }
 
-    private let stopMusicDefaultsKey = "stopMusicWhenAsleep"
-    private var stopMusicWhenAsleep: Bool {
-        get { UserDefaults.standard.bool(forKey: stopMusicDefaultsKey) }
-        set { UserDefaults.standard.set(newValue, forKey: stopMusicDefaultsKey) }
-    }
-
     private let durations: [(label: String, seconds: TimeInterval)] = [
         ("5 minutes",  5 * 60),
         ("15 minutes", 15 * 60),
@@ -72,21 +66,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func rebuildMenu() {
         let menu = NSMenu()
-
-        let titleItem = NSMenuItem(title: "BedTime", action: nil, keyEquivalent: "")
-        titleItem.isEnabled = false
-        let title = NSMutableAttributedString(
-            string: "BedTime ",
-            attributes: [.font: NSFont.systemFont(ofSize: NSFont.systemFontSize + 1, weight: .heavy)])
-        title.append(NSAttributedString(
-            string: "(a Sleep Timer by sp33c.tech)",
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 8, weight: .regular),
-                .foregroundColor: NSColor.secondaryLabelColor,
-            ]))
-        titleItem.attributedTitle = title
-        menu.addItem(titleItem)
-        menu.addItem(.separator())
 
         if let sleepDate = sleepDate {
             let formatter = DateFormatter()
@@ -149,7 +128,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
-        let dim = NSMenuItem(title: "Wind Down the Lights When Timer's Up",
+        let dim = NSMenuItem(title: "Wind Down the Lights When Timer Starts",
                              action: #selector(toggleDim),
                              keyEquivalent: "")
         dim.target = self
@@ -165,13 +144,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         reset.image = menuIcon("arrow.clockwise")
         menu.addItem(reset)
 
-        let stopMusic = NSMenuItem(title: "Stop Music When I Fall Asleep",
-                                   action: #selector(toggleStopMusic),
-                                   keyEquivalent: "")
-        stopMusic.target = self
-        stopMusic.state = stopMusicWhenAsleep ? .on : .off
-        stopMusic.image = menuIcon("pause.circle")
-        menu.addItem(stopMusic)
 
         let settings = NSMenuItem(title: "Settings…",
                                   action: #selector(showSettings),
@@ -242,6 +214,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         updateTitle()
         rebuildMenu()
+
+        if dimWhenSet {
+            // Wind the lights down to 10% as soon as the timer starts. The
+            // countdown keeps running, and brightness restores on mouse move
+            // or after 1m.
+            dimScreen(to: setDimBrightness)
+        }
     }
 
     private func handleTick() {
@@ -379,9 +358,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func sleepNow() {
-        // Wind the lights down to 10% when the timer's up.
-        if dimWhenSet { dimScreen(to: setDimBrightness) }
-        if stopMusicWhenAsleep { pauseMusic() }
         runPmset(["sleepnow"])
         cancelTimer()
     }
@@ -480,27 +456,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleDim() {
         dimWhenSet.toggle()
         rebuildMenu()
-    }
-
-    @objc private func toggleStopMusic() {
-        stopMusicWhenAsleep.toggle()
-        rebuildMenu()
-    }
-
-    // Pause whatever is playing in Music and Spotify. Pausing an app that is
-    // already paused (or not running) is a harmless no-op. macOS prompts once
-    // for Automation permission the first time this runs.
-    private func pauseMusic() {
-        let script = """
-        tell application "System Events"
-            if (name of processes) contains "Music" then tell application "Music" to pause
-            if (name of processes) contains "Spotify" then tell application "Spotify" to pause
-        end tell
-        """
-        if let apple = NSAppleScript(source: script) {
-            var error: NSDictionary?
-            apple.executeAndReturnError(&error)
-        }
     }
 
     // MARK: - Custom timer
@@ -606,8 +561,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.title = "Settings"
         window.isReleasedWhenClosed = false
 
-        let titleLabel = makeLabel(name, font: .boldSystemFont(ofSize: 15),
-                                   color: .labelColor)
+        let branding = NSMutableAttributedString(
+            string: name + " ",
+            attributes: [.font: NSFont.systemFont(ofSize: 15, weight: .heavy),
+                         .foregroundColor: NSColor.labelColor])
+        branding.append(NSAttributedString(
+            string: "(a Sleep Timer by sp33c.tech)",
+            attributes: [.font: NSFont.systemFont(ofSize: 9, weight: .regular),
+                         .foregroundColor: NSColor.secondaryLabelColor]))
+        let titleLabel = NSTextField(labelWithAttributedString: branding)
         let rows = NSStackView(views: [
             settingRow("Bundle Identifier", bundleID),
             settingRow("Version", version),

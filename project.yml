@@ -1,4 +1,4 @@
-name: Lunair
+name: Lunis
 
 options:
   bundleIdPrefix: tech.sp33c
@@ -10,35 +10,42 @@ settings:
   base:
     DEVELOPMENT_TEAM: Q2ZG8FQS59
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.2.2"
-    CURRENT_PROJECT_VERSION: "2"
+    MARKETING_VERSION: "1.2.7"
+    CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
 
 targets:
-  Lunair:
+  Lunis:
     type: application
     platform: macOS
     sources:
       - path: main.swift
-      - path: Lunair.entitlements
+      - path: Lunis.entitlements
       - path: Assets.xcassets
     settings:
       base:
-        PRODUCT_NAME: Lunair
-        PRODUCT_BUNDLE_IDENTIFIER: tech.sp33c.sleeptimer
+        PRODUCT_NAME: Lunis
+        PRODUCT_BUNDLE_IDENTIFIER: tech.sp33c.lunis
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_LSUIElement: YES
-        INFOPLIST_KEY_CFBundleDisplayName: Lunair
+        INFOPLIST_KEY_CFBundleDisplayName: Lunis
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
-        INFOPLIST_KEY_NSAppleEventsUsageDescription: "Lunair sleeps your Mac by asking System Events to sleep when a timer ends."
+        INFOPLIST_KEY_NSAppleEventsUsageDescription: "Lunis sleeps your Mac by asking System Events to sleep when a timer ends."
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        CODE_SIGN_ENTITLEMENTS: Lunair.entitlements
+        CODE_SIGN_ENTITLEMENTS: Lunis.entitlements
         ENABLE_HARDENED_RUNTIME: YES
-        MARKETING_VERSION: "1.2.2"
+        MARKETING_VERSION: "1.2.7"
+      configs:
+        # Only the App Store (Release) build enforces the receipt check;
+        # Debug runs have no receipt and must launch normally.
+        Release:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: APP_STORE
 schemes:
-  Lunair:
+  Lunis:
     build:
       targets:
-        Lunair: all
+        Lunis: all
     run:
       config: Debug
+      # Local StoreKit testing for the Lunis Pro unlock (no App Store Connect needed).
+      storeKitConfiguration: Lunis.storekit

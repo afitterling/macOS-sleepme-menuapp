@@ -3,8 +3,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-APP_NAME="Lunair"
-BUNDLE_ID="tech.sp33c.sleeptimer"
+APP_NAME="Lunis"
+BUNDLE_ID="tech.sp33c.lunis"
 TEAM_ID="Q2ZG8FQS59"
 
 # Marketing version and build number are set with ./setVersion and live
@@ -38,7 +38,7 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>             <string>$APP_NAME</string>
-    <key>CFBundleDisplayName</key>      <string>Lunair</string>
+    <key>CFBundleDisplayName</key>      <string>Lunis</string>
     <key>CFBundleIdentifier</key>       <string>$BUNDLE_ID</string>
     <key>CFBundleVersion</key>          <string>$BUILD_NUMBER</string>
     <key>CFBundleShortVersionString</key><string>$VERSION</string>
@@ -48,7 +48,7 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
     <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
     <key>LSUIElement</key>              <true/>
     <key>LSMinimumSystemVersion</key>   <string>13.0</string>
-    <key>NSAppleEventsUsageDescription</key><string>Lunair sleeps your Mac by asking System Events to sleep when a timer ends.</string>
+    <key>NSAppleEventsUsageDescription</key><string>Lunis sleeps your Mac by asking System Events to sleep when a timer ends.</string>
 </dict>
 </plist>
 EOF
@@ -79,4 +79,4 @@ pkgbuild \
 echo "Built $PKG_FILE"
 
 # Open the project in Xcode (brings it forward if already running).
-open Lunair.xcodeproj
+open Lunis.xcodeproj

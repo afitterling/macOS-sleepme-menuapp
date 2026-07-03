@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EE0440472F32828094E88391"
-               BuildableName = "Lunair.app"
-               BlueprintName = "Lunair"
-               ReferencedContainer = "container:Lunair.xcodeproj">
+               BlueprintIdentifier = "BBF3E65636B93839ECD87B6B"
+               BuildableName = "Lunis.app"
+               BlueprintName = "Lunis"
+               ReferencedContainer = "container:Lunis.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,10 +32,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "EE0440472F32828094E88391"
-            BuildableName = "Lunair.app"
-            BlueprintName = "Lunair"
-            ReferencedContainer = "container:Lunair.xcodeproj">
+            BlueprintIdentifier = "BBF3E65636B93839ECD87B6B"
+            BuildableName = "Lunis.app"
+            BlueprintName = "Lunis"
+            ReferencedContainer = "container:Lunis.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -55,14 +55,17 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "EE0440472F32828094E88391"
-            BuildableName = "Lunair.app"
-            BlueprintName = "Lunair"
-            ReferencedContainer = "container:Lunair.xcodeproj">
+            BlueprintIdentifier = "BBF3E65636B93839ECD87B6B"
+            BuildableName = "Lunis.app"
+            BlueprintName = "Lunis"
+            ReferencedContainer = "container:Lunis.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
       </CommandLineArguments>
+      <StoreKitConfigurationFileReference
+         identifier = "../../Lunis.storekit">
+      </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -74,10 +77,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "EE0440472F32828094E88391"
-            BuildableName = "Lunair.app"
-            BlueprintName = "Lunair"
-            ReferencedContainer = "container:Lunair.xcodeproj">
+            BlueprintIdentifier = "BBF3E65636B93839ECD87B6B"
+            BuildableName = "Lunis.app"
+            BlueprintName = "Lunis"
+            ReferencedContainer = "container:Lunis.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

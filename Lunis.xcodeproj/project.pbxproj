@@ -7,138 +7,115 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		023A22C5931AEE84EDE1DD30 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5E7C756197CD4E072706179C /* Assets.xcassets */; };
-		0FD76FDB0A66DF70459870E4 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9411982E97640D67E9F8F1D5 /* main.swift */; };
+		0EF8A6457E56A7B4F85E7025 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4833A6C8DFAAC2757BF29CD1 /* Assets.xcassets */; };
+		C80613B214DE9095A164618D /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = F49DA4905371BE82304B29F4 /* main.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		5E7C756197CD4E072706179C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		9411982E97640D67E9F8F1D5 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
-		A0C97C58AE11FC537E1A0028 /* Lunair.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lunair.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D2675D2E819E0C39E4D4A8A0 /* Lunair.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Lunair.entitlements; sourceTree = "<group>"; };
+		4833A6C8DFAAC2757BF29CD1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		5F0CB248104D0CC6B337DCE7 /* Lunis.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lunis.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		77E928516F064C311E91F1C6 /* Lunis.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Lunis.entitlements; sourceTree = "<group>"; };
+		F49DA4905371BE82304B29F4 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
-		2375CA45373196C2B047F45E /* Products */ = {
+		58F57666D6EA68E3C7ECC6B1 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A0C97C58AE11FC537E1A0028 /* Lunair.app */,
+				5F0CB248104D0CC6B337DCE7 /* Lunis.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		818B08517EE411133200212B = {
+		765F012B29054BCC16720A33 = {
 			isa = PBXGroup;
 			children = (
-				5E7C756197CD4E072706179C /* Assets.xcassets */,
-				D2675D2E819E0C39E4D4A8A0 /* Lunair.entitlements */,
-				9411982E97640D67E9F8F1D5 /* main.swift */,
-				2375CA45373196C2B047F45E /* Products */,
+				4833A6C8DFAAC2757BF29CD1 /* Assets.xcassets */,
+				77E928516F064C311E91F1C6 /* Lunis.entitlements */,
+				F49DA4905371BE82304B29F4 /* main.swift */,
+				58F57666D6EA68E3C7ECC6B1 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		EE0440472F32828094E88391 /* Lunair */ = {
+		BBF3E65636B93839ECD87B6B /* Lunis */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = EC41986858CD4CE772DB6D73 /* Build configuration list for PBXNativeTarget "Lunair" */;
+			buildConfigurationList = 2091DFB3D7D1C730D121F5AA /* Build configuration list for PBXNativeTarget "Lunis" */;
 			buildPhases = (
-				866460F8EE72AC5A22BF6797 /* Sources */,
-				224C95B7641DD7DD542BA253 /* Resources */,
+				1B52F650F42ACA214D72196E /* Sources */,
+				A7E636E3BB6CF0469E3F9BE8 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = Lunair;
+			name = Lunis;
 			packageProductDependencies = (
 			);
-			productName = Lunair;
-			productReference = A0C97C58AE11FC537E1A0028 /* Lunair.app */;
+			productName = Lunis;
+			productReference = 5F0CB248104D0CC6B337DCE7 /* Lunis.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		071184325E60B1DB271F8655 /* Project object */ = {
+		CBA6EF0F3CE8F6CEF559111D /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
-					EE0440472F32828094E88391 = {
+					BBF3E65636B93839ECD87B6B = {
 						DevelopmentTeam = Q2ZG8FQS59;
 						ProvisioningStyle = Automatic;
 					};
 				};
 			};
-			buildConfigurationList = 8934F7278C5B2E51067478AB /* Build configuration list for PBXProject "Lunair" */;
+			buildConfigurationList = 8D082347E84D11BC536A36E5 /* Build configuration list for PBXProject "Lunis" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
 				en,
 			);
-			mainGroup = 818B08517EE411133200212B;
+			mainGroup = 765F012B29054BCC16720A33;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 2375CA45373196C2B047F45E /* Products */;
+			productRefGroup = 58F57666D6EA68E3C7ECC6B1 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				EE0440472F32828094E88391 /* Lunair */,
+				BBF3E65636B93839ECD87B6B /* Lunis */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		224C95B7641DD7DD542BA253 /* Resources */ = {
+		A7E636E3BB6CF0469E3F9BE8 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				023A22C5931AEE84EDE1DD30 /* Assets.xcassets in Resources */,
+				0EF8A6457E56A7B4F85E7025 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		866460F8EE72AC5A22BF6797 /* Sources */ = {
+		1B52F650F42ACA214D72196E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0FD76FDB0A66DF70459870E4 /* main.swift in Sources */,
+				C80613B214DE9095A164618D /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		062964D9E6F262390CF6AE22 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = Lunair.entitlements;
-				COMBINE_HIDPI_IMAGES = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Lunair;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Lunair sleeps your Mac by asking System Events to sleep when a timer ends.";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				MARKETING_VERSION = 1.2.2;
-				PRODUCT_BUNDLE_IDENTIFIER = tech.sp33c.sleeptimer;
-				PRODUCT_NAME = Lunair;
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
-		150591F0DAEDA3633AA7F746 /* Release */ = {
+		1D2172B0C316AD5EE64E3850 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -173,90 +150,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = Q2ZG8FQS59;
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.2.2;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
-		3E879A0BBF3780CF4328C275 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = Lunair.entitlements;
-				COMBINE_HIDPI_IMAGES = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Lunair;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Lunair sleeps your Mac by asking System Events to sleep when a timer ends.";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				MARKETING_VERSION = 1.2.2;
-				PRODUCT_BUNDLE_IDENTIFIER = tech.sp33c.sleeptimer;
-				PRODUCT_NAME = Lunair;
-				SDKROOT = macosx;
-			};
-			name = Release;
-		};
-		5DF21AA88CDC7037DAB69ECB /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_STYLE = Automatic;
-				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = Q2ZG8FQS59;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -276,7 +170,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.2.2;
+				MARKETING_VERSION = 1.2.7;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -288,28 +182,135 @@
 			};
 			name = Debug;
 		};
+		2DBB9FD707A1B540FB41E4D7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Lunis.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Lunis;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Lunis sleeps your Mac by asking System Events to sleep when a timer ends.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.2.7;
+				PRODUCT_BUNDLE_IDENTIFIER = tech.sp33c.lunis;
+				PRODUCT_NAME = Lunis;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = APP_STORE;
+			};
+			name = Release;
+		};
+		3A3D1D3095846EB6BB22A89A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Lunis.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Lunis;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Lunis sleeps your Mac by asking System Events to sleep when a timer ends.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.2.7;
+				PRODUCT_BUNDLE_IDENTIFIER = tech.sp33c.lunis;
+				PRODUCT_NAME = Lunis;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		E8CDB5F838641238D3A4C93B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = Q2ZG8FQS59;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.2.7;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		8934F7278C5B2E51067478AB /* Build configuration list for PBXProject "Lunair" */ = {
+		2091DFB3D7D1C730D121F5AA /* Build configuration list for PBXNativeTarget "Lunis" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				5DF21AA88CDC7037DAB69ECB /* Debug */,
-				150591F0DAEDA3633AA7F746 /* Release */,
+				3A3D1D3095846EB6BB22A89A /* Debug */,
+				2DBB9FD707A1B540FB41E4D7 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		EC41986858CD4CE772DB6D73 /* Build configuration list for PBXNativeTarget "Lunair" */ = {
+		8D082347E84D11BC536A36E5 /* Build configuration list for PBXProject "Lunis" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				062964D9E6F262390CF6AE22 /* Debug */,
-				3E879A0BBF3780CF4328C275 /* Release */,
+				1D2172B0C316AD5EE64E3850 /* Debug */,
+				E8CDB5F838641238D3A4C93B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 071184325E60B1DB271F8655 /* Project object */;
+	rootObject = CBA6EF0F3CE8F6CEF559111D /* Project object */;
 }

@@ -1,4 +1,4 @@
-// Lunair — menu-bar sleep timer for macOS.
+// Lunis — menu-bar sleep timer for macOS.
 // Copyright (C) 2026 Alex Fitterling
 //
 // This program is free software: you can redistribute it and/or modify it
@@ -7,6 +7,7 @@
 // any later version. See <https://www.gnu.org/licenses/> for the full text.
 
 import Cocoa
+import ServiceManagement
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -58,7 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
             let config = NSImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
-            let image = NSImage(systemSymbolName: "moon.zzz.fill", accessibilityDescription: "Lunair")?
+            let image = NSImage(systemSymbolName: "moon.zzz.fill", accessibilityDescription: "Lunis")?
                 .withSymbolConfiguration(config)
             image?.isTemplate = true
             button.image = image
@@ -125,23 +126,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
-        let dim = NSMenuItem(title: "Wind Down the Lights When Timer Starts",
-                             action: #selector(toggleDim),
-                             keyEquivalent: "")
-        dim.target = self
-        dim.state = dimWhenSet ? .on : .off
-        dim.image = menuIcon("moon")
-        menu.addItem(dim)
-
-        let reset = NSMenuItem(title: "Reset Timer on Activity",
-                               action: #selector(toggleReset),
-                               keyEquivalent: "")
-        reset.target = self
-        reset.state = resetOnActivity ? .on : .off
-        reset.image = menuIcon("arrow.clockwise")
-        menu.addItem(reset)
-
-
         let settings = NSMenuItem(title: "Settings",
                                   action: #selector(showSettings),
                                   keyEquivalent: ",")
@@ -177,11 +161,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return image
     }
 
-    @objc private func toggleReset() {
-        resetOnActivity.toggle()
-        rebuildMenu()
-    }
-
     @objc private func startTimer(_ sender: NSMenuItem) {
         guard let seconds = sender.representedObject as? TimeInterval else { return }
         startTimer(seconds: seconds)
@@ -207,10 +186,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rebuildMenu()
 
         if dimWhenSet {
-            // Wind the lights down to 10% as soon as the timer starts. The
-            // countdown keeps running, and brightness restores on mouse move
-            // or after 1m.
-            dimScreen(to: setDimBrightness)
+            // Wind the lights down as soon as the timer starts. The countdown
+            // keeps running, and brightness restores on activity or after 1m.
+            dimScreen(to: dimBrightness)
         }
     }
 
@@ -340,7 +318,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func dimNowAction() {
-        dimScreen(to: windDownBrightness)
+        dimScreen(to: dimBrightness)
     }
 
     @objc private func sleepNowAction() {
@@ -352,36 +330,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         cancelTimer()
     }
 
-    // The App Sandbox forbids launching `pmset`, and macOS exposes no public
-    // sandbox-safe call to sleep the Mac. We drive System Events over Apple
-    // events instead — allowed by the apple-events temporary exception in the
-    // entitlements, gated behind a one-time Automation permission prompt.
+    // Sleep the Mac by sending the low-level `kAESleep` power event straight
+    // to the system process. Unlike `tell application "System Events" to sleep`,
+    // this targets no scriptable app, so it needs no apple-events entitlement
+    // and works inside the App Sandbox — the same route App Store sleep apps use.
     private func sleepTheMac() {
-        let source = "tell application \"System Events\" to sleep"
-        var error: NSDictionary?
-        if let script = NSAppleScript(source: source) {
-            script.executeAndReturnError(&error)
-        }
-        if let error = error {
-            // -1743 is errAEEventNotPermitted: the user declined Automation
-            // access for System Events. Point them at the fix rather than
-            // failing silently.
-            if (error[NSAppleScript.errorNumber] as? Int) == -1743 {
-                warn("Lunair needs permission to control System Events to sleep "
-                   + "your Mac. Grant it in System Settings ▸ Privacy & Security "
-                   + "▸ Automation, then try again.")
-            }
+        var psn = ProcessSerialNumber(highLongOfPSN: 0,
+                                      lowLongOfPSN: UInt32(kSystemProcess))
+        let target = NSAppleEventDescriptor(
+            descriptorType: typeProcessSerialNumber,
+            bytes: &psn,
+            length: MemoryLayout.size(ofValue: psn))
+        let event = NSAppleEventDescriptor(
+            eventClass: kCoreEventClass,
+            eventID: kAESleep,
+            targetDescriptor: target,
+            returnID: AEReturnID(kAutoGenerateReturnID),
+            transactionID: AETransactionID(kAnyTransactionID))
+        do {
+            try event.sendEvent(options: [.noReply],
+                                timeout: TimeInterval(kAEDefaultTimeout))
+        } catch {
+            NSLog("Lunis: sleep event failed — \(error)")
         }
     }
 
     // MARK: - Dimming
 
     // The screen is dimmed by floating translucent black windows over every
-    // display. Values are expressed as a target perceived brightness so the
-    // call sites read the same as the old hardware-brightness code: winding
-    // down lands at 30%, the "dim when timer set" toggle goes lower, to 10%.
-    private let windDownBrightness: Float = 0.30
-    private let setDimBrightness: Float = 0.10
+    // display. `dimBrightness` is the target perceived brightness the overlay
+    // dims to (0 = black, 1 = no dim), configurable from Settings.
+    private let dimBrightnessKey = "dimBrightness"
+    private var dimBrightness: Float {
+        get {
+            UserDefaults.standard.object(forKey: dimBrightnessKey) == nil
+                ? 0.15 : UserDefaults.standard.float(forKey: dimBrightnessKey)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: dimBrightnessKey) }
+    }
 
     // How long the dim has been up; used to ignore the input that triggered it.
     private let dimGrace: TimeInterval = 2
@@ -441,9 +427,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dimWindows.removeAll()
     }
 
-    @objc private func toggleDim() {
-        dimWhenSet.toggle()
-        rebuildMenu()
+    // MARK: - Settings controls
+
+    // Login item registration. SMAppService is the sandbox-safe, macOS 13+ way
+    // to launch at login; it registers reliably only for a signed app bundle.
+    private var launchAtLogin: Bool {
+        get { SMAppService.mainApp.status == .enabled }
+        set {
+            do {
+                if newValue { try SMAppService.mainApp.register() }
+                else { try SMAppService.mainApp.unregister() }
+            } catch {
+                NSLog("Lunis: launch-at-login toggle failed — \(error)")
+            }
+        }
+    }
+
+    @objc private func setLaunchAtLogin(_ sender: NSButton) {
+        launchAtLogin = (sender.state == .on)
+        // Reflect what actually took effect in case registration failed.
+        sender.state = launchAtLogin ? .on : .off
+    }
+
+    @objc private func setDimWhenSet(_ sender: NSButton) {
+        dimWhenSet = (sender.state == .on)
+    }
+
+    @objc private func setResetOnActivity(_ sender: NSButton) {
+        resetOnActivity = (sender.state == .on)
+    }
+
+    @objc private func dimLevelChanged(_ sender: NSSlider) {
+        dimBrightness = sender.floatValue
+        // Live-update the overlay if a dim is currently showing.
+        if !dimWindows.isEmpty {
+            let alpha = CGFloat(1 - min(max(sender.floatValue, 0), 1))
+            for window in dimWindows { window.alphaValue = alpha }
+        }
     }
 
     // MARK: - Custom timer
@@ -497,7 +517,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let build = info?["CFBundleVersion"] as? String ?? "—"
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 340, height: 180),
+            contentRect: NSRect(x: 0, y: 0, width: 360, height: 320),
             styleMask: [.titled, .closable],
             backing: .buffered, defer: false)
         window.title = "Settings"
@@ -512,6 +532,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             attributes: [.font: NSFont.systemFont(ofSize: 9, weight: .regular),
                          .foregroundColor: NSColor.secondaryLabelColor]))
         let titleLabel = NSTextField(labelWithAttributedString: branding)
+
+        // Preferences — checkboxes plus the dim-level slider.
+        let launch = makeCheckbox("Launch at login",
+                                  on: launchAtLogin, action: #selector(setLaunchAtLogin(_:)))
+        let windDown = makeCheckbox("Wind down the lights when the timer starts",
+                                    on: dimWhenSet, action: #selector(setDimWhenSet(_:)))
+        let resetActivity = makeCheckbox("Reset timer on activity",
+                                         on: resetOnActivity, action: #selector(setResetOnActivity(_:)))
+
+        let dimCaption = makeLabel("Dim level", font: .systemFont(ofSize: 12),
+                                   color: .secondaryLabelColor)
+        let slider = NSSlider(value: Double(dimBrightness), minValue: 0.0, maxValue: 0.7,
+                              target: self, action: #selector(dimLevelChanged(_:)))
+        slider.translatesAutoresizingMaskIntoConstraints = false
+        slider.widthAnchor.constraint(equalToConstant: 180).isActive = true
+        let dimRow = NSStackView(views: [dimCaption, slider])
+        dimRow.orientation = .horizontal
+        dimRow.spacing = 10
+
+        let prefs = NSStackView(views: [launch, windDown, resetActivity, dimRow])
+        prefs.orientation = .vertical
+        prefs.alignment = .leading
+        prefs.spacing = 8
+
         let rows = NSStackView(views: [
             settingRow("Bundle Identifier", bundleID),
             settingRow("Version", version),
@@ -521,7 +565,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rows.alignment = .leading
         rows.spacing = 8
 
-        let stack = NSStackView(views: [titleLabel, rows])
+        let stack = NSStackView(views: [titleLabel, prefs, makeSeparator(), rows])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 16
@@ -558,8 +602,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return label
     }
 
+    private func makeCheckbox(_ title: String, on: Bool, action: Selector) -> NSButton {
+        let button = NSButton(checkboxWithTitle: title, target: self, action: action)
+        button.state = on ? .on : .off
+        return button
+    }
+
+    private func makeSeparator() -> NSBox {
+        let box = NSBox()
+        box.boxType = .separator
+        box.translatesAutoresizingMaskIntoConstraints = false
+        box.widthAnchor.constraint(equalToConstant: 320).isActive = true
+        return box
+    }
+
     @objc private func contactMaintainer() {
-        if let url = URL(string: "https://sleeptimer.sp33c.tech/support") {
+        if let url = URL(string: "https://lunis.sp33c.tech/support") {
             NSWorkspace.shared.open(url)
         }
     }
@@ -568,6 +626,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.terminate(nil)
     }
 }
+
+#if APP_STORE
+// Paid, up-front App Store app: require a Mac App Store receipt. If one isn't
+// present, exit(173) so macOS fetches a fresh receipt (and refuses to run
+// copies that were never purchased). Gated to the App Store build so the
+// Developer ID build and Xcode debug runs — which have no receipt — still run.
+if (try? Bundle.main.appStoreReceiptURL?.checkResourceIsReachable()) != true {
+    exit(173)
+}
+#endif
 
 // Program entry. We're on the main thread at launch, so it's safe to assume
 // the main actor for the @MainActor-isolated AppDelegate.

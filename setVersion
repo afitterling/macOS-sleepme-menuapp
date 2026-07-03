@@ -33,11 +33,11 @@ printf '%s\n' "$BUILD" > BUILD_NUMBER
 
 if command -v xcodegen >/dev/null 2>&1; then
     xcodegen generate >/dev/null
-    echo "Regenerated Lunair.xcodeproj"
+    echo "Regenerated Lunis.xcodeproj"
 else
     echo "xcodegen not found — skipping project regeneration (brew install xcodegen)"
 fi
 
 echo "Version $VERSION (build $BUILD)"
 
-open Lunair.xcodeproj
+open Lunis.xcodeproj

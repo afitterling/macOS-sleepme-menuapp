@@ -67,6 +67,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .medium)
         }
         rebuildMenu()
+
+        // Surface the Automation consent prompt now rather than when a timer
+        // fires. Deferred so it doesn't block launch.
+        DispatchQueue.main.async { [weak self] in self?.requestAutomationPermission() }
     }
 
     private func rebuildMenu() {
@@ -117,11 +121,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
-        let dimNow = NSMenuItem(title: "Bedtime Lightning",
+        let dimNow = NSMenuItem(title: "Bedtime Lighting",
                                 action: #selector(dimNowAction),
                                 keyEquivalent: "")
         dimNow.target = self
         dimNow.image = menuIcon("moon.zzz")
+        // Checkmark while the manual dim is active; selecting it again lifts it.
+        dimNow.state = (dimIsManual && !dimWindows.isEmpty) ? .on : .off
         menu.addItem(dimNow)
 
         menu.addItem(.separator())
@@ -208,10 +214,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func systemIdleSeconds() -> CFTimeInterval {
-        // Seconds since the last keyboard/mouse input. Needs no special
-        // permission, unlike a global event monitor.
+        // Seconds since the last user input. Needs no special permission,
+        // unlike a global event monitor. kCGAnyInputEventType (~0) misses
+        // system-defined events — hardware brightness/media keys — so fold
+        // those in separately: pressing brightness-up while the dim overlay is
+        // showing must count as activity and lift the dim (verified: type 14
+        // resets on brightness keys while ~0 does not).
         let anyInput = CGEventType(rawValue: ~0) ?? .null
-        return CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: anyInput)
+        let sysDefined = CGEventType(rawValue: 14) ?? .null   // NX_SYSDEFINED
+        return min(
+            CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: anyInput),
+            CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: sysDefined))
     }
 
     private func updateTitle() {
@@ -317,8 +330,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rebuildMenu()
     }
 
+    // Bedtime Lighting: a manual, persistent reading light. Toggles from the
+    // menu. Deliberately disconnected from the automatic timer dim: it does NOT
+    // lift on mouse/keyboard activity and has no auto-lift timeout.
     @objc private func dimNowAction() {
-        dimScreen(to: dimBrightness)
+        if dimIsManual, !dimWindows.isEmpty {
+            restoreBrightness()
+        } else {
+            dimScreen(to: bedtimeLightBrightness, manual: true)
+        }
+        rebuildMenu()
     }
 
     @objc private func sleepNowAction() {
@@ -330,28 +351,64 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         cancelTimer()
     }
 
-    // Sleep the Mac by sending the low-level `kAESleep` power event straight
-    // to the system process. Unlike `tell application "System Events" to sleep`,
-    // this targets no scriptable app, so it needs no apple-events entitlement
-    // and works inside the App Sandbox — the same route App Store sleep apps use.
+    // The App Sandbox exposes no public call to sleep the Mac, so we drive
+    // System Events over Apple events. Two independent gates must both pass:
+    // (1) the sandbox blocks outgoing Apple events unless the
+    //     temporary-exception.apple-events entitlement lists the target, and
+    // (2) TCC still requires per-user Automation consent (the one-time prompt;
+    //     revocable in System Settings ▸ Privacy & Security ▸ Automation).
+    // The raw kAESleep power event is not an alternative: it hits gate (1) with
+    // no entitlement that can authorize it.
     private func sleepTheMac() {
-        var psn = ProcessSerialNumber(highLongOfPSN: 0,
-                                      lowLongOfPSN: UInt32(kSystemProcess))
-        let target = NSAppleEventDescriptor(
-            descriptorType: typeProcessSerialNumber,
-            bytes: &psn,
-            length: MemoryLayout.size(ofValue: psn))
-        let event = NSAppleEventDescriptor(
-            eventClass: kCoreEventClass,
-            eventID: kAESleep,
-            targetDescriptor: target,
-            returnID: AEReturnID(kAutoGenerateReturnID),
-            transactionID: AETransactionID(kAnyTransactionID))
-        do {
-            try event.sendEvent(options: [.noReply],
-                                timeout: TimeInterval(kAEDefaultTimeout))
-        } catch {
-            NSLog("Lunis: sleep event failed — \(error)")
+        let source = "tell application \"System Events\" to sleep"
+        var error: NSDictionary?
+        if let script = NSAppleScript(source: source) {
+            script.executeAndReturnError(&error)
+        }
+        if let error = error {
+            NSLog("Lunis: sleep failed — %@", error)
+            // -1743 is errAEEventNotPermitted: Automation consent is missing
+            // or was declined. Guide the user to the fix instead of failing
+            // silently.
+            if (error[NSAppleScript.errorNumber] as? Int) == -1743 {
+                guideToAutomationSettings()
+            }
+        }
+    }
+
+    // MARK: - Automation permission
+
+    // Trigger the one-time Automation consent prompt at first launch, so the
+    // user grants it while they're setting up — not hours later when a timer
+    // fires into a silent failure. Only actually sending an Apple event makes
+    // TCC show the prompt (and list Lunis under Privacy ▸ Automation), so we
+    // send a harmless read of System Events' name and ignore the result. If
+    // consent was previously declined (-1743), walk the user to the setting.
+    private func requestAutomationPermission() {
+        var error: NSDictionary?
+        NSAppleScript(source: "tell application \"System Events\" to get name")?
+            .executeAndReturnError(&error)
+        if let error = error,
+           (error[NSAppleScript.errorNumber] as? Int) == -1743 {
+            guideToAutomationSettings()
+        }
+    }
+
+    // Explain why the permission is needed and open the exact settings pane.
+    private func guideToAutomationSettings() {
+        let alert = NSAlert()
+        alert.messageText = "Allow Lunis to sleep your Mac"
+        alert.informativeText =
+            "Lunis puts your Mac to sleep by asking System Events, which needs "
+          + "your permission.\n\nOpen System Settings ▸ Privacy & Security ▸ "
+          + "Automation, then turn on “System Events” under Lunis."
+        alert.addButton(withTitle: "Open Automation Settings")
+        alert.addButton(withTitle: "Later")
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        if let url = URL(string:
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
+            NSWorkspace.shared.open(url)
         }
     }
 
@@ -369,18 +426,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         set { UserDefaults.standard.set(newValue, forKey: dimBrightnessKey) }
     }
 
+    // Bedtime Lighting has its own light level, independent of the timer dim.
+    private let bedtimeLightKey = "bedtimeLightBrightness"
+    private var bedtimeLightBrightness: Float {
+        get {
+            UserDefaults.standard.object(forKey: bedtimeLightKey) == nil
+                ? 0.15 : UserDefaults.standard.float(forKey: bedtimeLightKey)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: bedtimeLightKey) }
+    }
+
     // How long the dim has been up; used to ignore the input that triggered it.
     private let dimGrace: TimeInterval = 2
 
-    // Show (or re-target) the dim overlay, then lift it on the next user input
-    // after a short grace period — or after a minute, whichever comes first.
-    private func dimScreen(to brightness: Float) {
+    // Two disconnected dim features share the overlay plumbing:
+    //  - automatic timer dim (manual: false): lifts on any user activity after
+    //    the grace period, or after a minute, whichever comes first;
+    //  - manual Bedtime Lighting (manual: true): a persistent reading light —
+    //    survives mouse/keyboard use, has no timeout, and lifts only on the
+    //    hardware brightness keys or by toggling the menu item again.
+    private var dimIsManual = false
+
+    private func dimScreen(to brightness: Float, manual: Bool = false) {
+        dimIsManual = manual
         let alpha = CGFloat(1 - min(max(brightness, 0), 1))
         showDimOverlay(alpha: alpha)
         armDimRestore()
         dimFallback?.invalidate()
-        dimFallback = Timer.scheduledTimer(withTimeInterval: 60, repeats: false) { [weak self] _ in
-            self?.restoreBrightness()
+        dimFallback = nil
+        if !manual {
+            dimFallback = Timer.scheduledTimer(withTimeInterval: 60, repeats: false) { [weak self] _ in
+                self?.restoreBrightness()
+            }
         }
     }
 
@@ -404,8 +481,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // Poll for input rather than installing a global event monitor (the App
-    // Sandbox forbids the latter). `systemIdleSeconds()` resets to ~0 on any
-    // keyboard/mouse activity and needs no special permission.
+    // Sandbox forbids the latter). The idle counters reset to ~0 on activity
+    // and need no special permission. Automatic dims lift on any input; the
+    // manual Bedtime Lighting only on the brightness/media keys.
     private func armDimRestore() {
         dimActivityTimer?.invalidate()
         let armedAt = Date()
@@ -414,8 +492,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Wait out the grace window so the click that dimmed the screen
             // doesn't immediately lift it.
             guard Date().timeIntervalSince(armedAt) > self.dimGrace else { return }
-            if self.systemIdleSeconds() < 1 { self.restoreBrightness() }
+            let idle = self.dimIsManual
+                ? self.brightnessKeyIdleSeconds()
+                : self.systemIdleSeconds()
+            if idle < 1 { self.restoreBrightness() }
         }
+    }
+
+    // Seconds since the last system-defined event (hardware brightness/media
+    // keys) — the only input that lifts the manual Bedtime Lighting.
+    private func brightnessKeyIdleSeconds() -> CFTimeInterval {
+        let sysDefined = CGEventType(rawValue: 14) ?? .null   // NX_SYSDEFINED
+        return CGEventSource.secondsSinceLastEventType(.combinedSessionState,
+                                                       eventType: sysDefined)
     }
 
     private func restoreBrightness() {
@@ -425,6 +514,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dimActivityTimer = nil
         for window in dimWindows { window.orderOut(nil) }
         dimWindows.removeAll()
+        dimIsManual = false
+        rebuildMenu()   // clear the Bedtime Lighting checkmark
     }
 
     // MARK: - Settings controls
@@ -459,8 +550,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func dimLevelChanged(_ sender: NSSlider) {
         dimBrightness = sender.floatValue
-        // Live-update the overlay if a dim is currently showing.
-        if !dimWindows.isEmpty {
+        // Live-update the overlay only if the automatic timer dim is showing.
+        if !dimWindows.isEmpty, !dimIsManual {
+            let alpha = CGFloat(1 - min(max(sender.floatValue, 0), 1))
+            for window in dimWindows { window.alphaValue = alpha }
+        }
+    }
+
+    @objc private func bedtimeLevelChanged(_ sender: NSSlider) {
+        bedtimeLightBrightness = sender.floatValue
+        // Live-update the overlay only if Bedtime Lighting is currently on.
+        if !dimWindows.isEmpty, dimIsManual {
             let alpha = CGFloat(1 - min(max(sender.floatValue, 0), 1))
             for window in dimWindows { window.alphaValue = alpha }
         }
@@ -533,7 +633,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                          .foregroundColor: NSColor.secondaryLabelColor]))
         let titleLabel = NSTextField(labelWithAttributedString: branding)
 
-        // Preferences — checkboxes plus the dim-level slider.
+        // Preferences — checkboxes plus the timer dim-level slider.
         let launch = makeCheckbox("Launch at login",
                                   on: launchAtLogin, action: #selector(setLaunchAtLogin(_:)))
         let windDown = makeCheckbox("Wind down the lights when the timer starts",
@@ -541,20 +641,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let resetActivity = makeCheckbox("Reset timer on activity",
                                          on: resetOnActivity, action: #selector(setResetOnActivity(_:)))
 
-        let dimCaption = makeLabel("Dim level", font: .systemFont(ofSize: 12),
-                                   color: .secondaryLabelColor)
-        let slider = NSSlider(value: Double(dimBrightness), minValue: 0.0, maxValue: 0.7,
-                              target: self, action: #selector(dimLevelChanged(_:)))
-        slider.translatesAutoresizingMaskIntoConstraints = false
-        slider.widthAnchor.constraint(equalToConstant: 180).isActive = true
-        let dimRow = NSStackView(views: [dimCaption, slider])
-        dimRow.orientation = .horizontal
-        dimRow.spacing = 10
+        let dimRow = sliderRow(caption: "Dim level",
+                               value: dimBrightness,
+                               action: #selector(dimLevelChanged(_:)))
 
         let prefs = NSStackView(views: [launch, windDown, resetActivity, dimRow])
         prefs.orientation = .vertical
         prefs.alignment = .leading
         prefs.spacing = 8
+
+        // Bedtime Lighting — its own section: a persistent reading light,
+        // separate from the timer dim. Lifts on brightness keys or via the
+        // menu toggle.
+        let bedtimeHeader = makeLabel("Bedtime Lighting",
+                                      font: .systemFont(ofSize: 13, weight: .semibold),
+                                      color: .labelColor)
+        let bedtimeHint = makeLabel(
+            "Persistent reading light. Turn off with the brightness keys\n"
+          + "or by choosing Bedtime Lighting again from the menu.",
+            font: .systemFont(ofSize: 11), color: .secondaryLabelColor)
+        let bedtimeRow = sliderRow(caption: "Light level",
+                                   value: bedtimeLightBrightness,
+                                   action: #selector(bedtimeLevelChanged(_:)))
+        let bedtime = NSStackView(views: [bedtimeHeader, bedtimeHint, bedtimeRow])
+        bedtime.orientation = .vertical
+        bedtime.alignment = .leading
+        bedtime.spacing = 8
 
         let rows = NSStackView(views: [
             settingRow("Bundle Identifier", bundleID),
@@ -565,7 +677,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rows.alignment = .leading
         rows.spacing = 8
 
-        let stack = NSStackView(views: [titleLabel, prefs, makeSeparator(), rows])
+        let stack = NSStackView(views: [titleLabel, prefs, makeSeparator(),
+                                        bedtime, makeSeparator(), rows])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 16
@@ -578,7 +691,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 stack.leadingAnchor.constraint(equalTo: content.leadingAnchor),
                 stack.trailingAnchor.constraint(equalTo: content.trailingAnchor),
                 stack.topAnchor.constraint(equalTo: content.topAnchor),
+                stack.bottomAnchor.constraint(equalTo: content.bottomAnchor),
             ])
+            // Size the window to the stack's natural height so nothing is
+            // clipped; the stack's edgeInsets provide the bottom padding.
+            content.layoutSubtreeIfNeeded()
+            window.setContentSize(content.fittingSize)
         }
         return window
     }
@@ -600,6 +718,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         label.font = font
         label.textColor = color
         return label
+    }
+
+    // A captioned brightness slider row (0 = black … 0.7 = mild dim).
+    private func sliderRow(caption: String, value: Float, action: Selector) -> NSStackView {
+        let label = makeLabel(caption, font: .systemFont(ofSize: 12),
+                              color: .secondaryLabelColor)
+        let slider = NSSlider(value: Double(value), minValue: 0.0, maxValue: 0.7,
+                              target: self, action: action)
+        slider.translatesAutoresizingMaskIntoConstraints = false
+        slider.widthAnchor.constraint(equalToConstant: 180).isActive = true
+        let row = NSStackView(views: [label, slider])
+        row.orientation = .horizontal
+        row.spacing = 10
+        return row
     }
 
     private func makeCheckbox(_ title: String, on: Bool, action: Selector) -> NSButton {

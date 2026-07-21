@@ -5,30 +5,20 @@
     <!-- App Store distribution requires the sandbox. -->
     <key>com.apple.security.app-sandbox</key>
     <true/>
-    <!-- Sleep is driven by asking System Events to sleep over Apple events
-         (see sleepTheMac()). BOTH keys below are required — they gate different
-         layers and are complements, not alternatives (verified via tccd logs):
 
-         1. temporary-exception.apple-events satisfies the SANDBOX gate; without
-            it the outgoing event is blocked outright. Scoped to the two targets
-            that expose a `sleep` verb.
-         2. automation.apple-events satisfies TCC's PROMPTING policy under the
-            Hardened Runtime (Xcode signs with -o runtime); without it tccd
-            refuses to even show the consent dialog and denies silently:
-            "Prompting policy for hardened runtime … requires entitlement
-             com.apple.security.automation.apple-events but it is missing".
+    <!-- Sleep is driven by a direct IOKit call (IOPMSleepSystem, see
+         sleepTheMac()). The App Sandbox grants access to the power-management
+         root domain to every app by default — the profile at
+         /System/Library/Sandbox/Profiles/application.sb applies
+         `(power-assertions)` with no entitlement guard — so NO entitlement is
+         needed to sleep the Mac.
 
-         TCC still requires one-time user consent (the Automation prompt, paired
-         with NSAppleEventsUsageDescription). Beware when testing: launching via
-         a terminal or Xcode attributes the event to the terminal's/Xcode's own
-         Automation grant, hiding the real end-user flow — test via Finder. -->
-    <key>com.apple.security.temporary-exception.apple-events</key>
-    <array>
-        <string>com.apple.systemevents</string>
-        <string>com.apple.finder</string>
-    </array>
-    <key>com.apple.security.automation.apple-events</key>
-    <true/>
+         Earlier versions asked System Events to sleep over Apple events, which
+         required com.apple.security.temporary-exception.apple-events. App Review
+         rejects that temporary exception under Guideline 2.4.5(i), so it (and
+         the paired automation.apple-events key + NSAppleEventsUsageDescription)
+         were removed. Do not reintroduce them: the IOKit path is entitlement-free
+         and needs no user consent prompt. -->
 
 </dict>
 </plist>

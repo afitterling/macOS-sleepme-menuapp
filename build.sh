@@ -48,7 +48,6 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
     <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
     <key>LSUIElement</key>              <true/>
     <key>LSMinimumSystemVersion</key>   <string>13.0</string>
-    <key>NSAppleEventsUsageDescription</key><string>Lunis sleeps your Mac by asking System Events to sleep when a timer ends.</string>
 </dict>
 </plist>
 EOF

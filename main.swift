@@ -8,6 +8,7 @@
 
 import Cocoa
 import ServiceManagement
+import IOKit.pwr_mgt
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -68,9 +69,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         rebuildMenu()
 
-        // Surface the Automation consent prompt now rather than when a timer
-        // fires. Deferred so it doesn't block launch.
-        DispatchQueue.main.async { [weak self] in self?.requestAutomationPermission() }
     }
 
     private func rebuildMenu() {
@@ -351,64 +349,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         cancelTimer()
     }
 
-    // The App Sandbox exposes no public call to sleep the Mac, so we drive
-    // System Events over Apple events. Two independent gates must both pass:
-    // (1) the sandbox blocks outgoing Apple events unless the
-    //     temporary-exception.apple-events entitlement lists the target, and
-    // (2) TCC still requires per-user Automation consent (the one-time prompt;
-    //     revocable in System Settings ▸ Privacy & Security ▸ Automation).
-    // The raw kAESleep power event is not an alternative: it hits gate (1) with
-    // no entitlement that can authorize it.
+    // Ask the kernel's power-management root domain to sleep directly. The App
+    // Sandbox grants every app this access unconditionally — the profile at
+    // /System/Library/Sandbox/Profiles/application.sb applies `(power-assertions)`
+    // with no entitlement guard, which allows opening RootDomainUserClient via
+    // IOPMFindPowerManagement. IOPMSleepSystem succeeds for root or the console
+    // user (per IOKit's IOPMLib.h); Lunis always runs as the logged-in console
+    // user, so no elevated privileges are needed.
+    //
+    // This replaced an earlier `tell application "System Events" to sleep`
+    // approach that required the temporary-exception.apple-events entitlement.
+    // App Review rejects that exception under Guideline 2.4.5(i); the direct
+    // IOKit path needs no entitlements, no Apple events, and no consent prompt.
     private func sleepTheMac() {
-        let source = "tell application \"System Events\" to sleep"
-        var error: NSDictionary?
-        if let script = NSAppleScript(source: source) {
-            script.executeAndReturnError(&error)
+        let port = IOPMFindPowerManagement(kIOMainPortDefault)
+        guard port != MACH_PORT_NULL else {
+            NSLog("Lunis: sleep failed — could not connect to power management")
+            return
         }
-        if let error = error {
-            NSLog("Lunis: sleep failed — %@", error)
-            // -1743 is errAEEventNotPermitted: Automation consent is missing
-            // or was declined. Guide the user to the fix instead of failing
-            // silently.
-            if (error[NSAppleScript.errorNumber] as? Int) == -1743 {
-                guideToAutomationSettings()
-            }
-        }
-    }
-
-    // MARK: - Automation permission
-
-    // Trigger the one-time Automation consent prompt at first launch, so the
-    // user grants it while they're setting up — not hours later when a timer
-    // fires into a silent failure. Only actually sending an Apple event makes
-    // TCC show the prompt (and list Lunis under Privacy ▸ Automation), so we
-    // send a harmless read of System Events' name and ignore the result. If
-    // consent was previously declined (-1743), walk the user to the setting.
-    private func requestAutomationPermission() {
-        var error: NSDictionary?
-        NSAppleScript(source: "tell application \"System Events\" to get name")?
-            .executeAndReturnError(&error)
-        if let error = error,
-           (error[NSAppleScript.errorNumber] as? Int) == -1743 {
-            guideToAutomationSettings()
-        }
-    }
-
-    // Explain why the permission is needed and open the exact settings pane.
-    private func guideToAutomationSettings() {
-        let alert = NSAlert()
-        alert.messageText = "Allow Lunis to sleep your Mac"
-        alert.informativeText =
-            "Lunis puts your Mac to sleep by asking System Events, which needs "
-          + "your permission.\n\nOpen System Settings ▸ Privacy & Security ▸ "
-          + "Automation, then turn on “System Events” under Lunis."
-        alert.addButton(withTitle: "Open Automation Settings")
-        alert.addButton(withTitle: "Later")
-        NSApp.activate(ignoringOtherApps: true)
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-        if let url = URL(string:
-            "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
-            NSWorkspace.shared.open(url)
+        defer { IOServiceClose(port) }
+        let result = IOPMSleepSystem(port)
+        if result != kIOReturnSuccess {
+            NSLog("Lunis: sleep failed — IOPMSleepSystem returned 0x%08x", result)
         }
     }
 
@@ -603,9 +565,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if settingsWindow == nil {
             settingsWindow = makeSettingsWindow()
         }
+        guard let window = settingsWindow else { return }
+        // Only recentre when it isn't already on screen, so reopening doesn't
+        // yank a window the user has moved back to the middle.
+        if !window.isVisible { window.center() }
         NSApp.activate(ignoringOtherApps: true)
-        settingsWindow?.makeKeyAndOrderFront(nil)
-        settingsWindow?.center()
+        window.makeKeyAndOrderFront(nil)
+        // As an .accessory app we can't count on activate() making us frontmost,
+        // and an ordinary orderFront leaves the window buried behind whatever is.
+        window.orderFrontRegardless()
     }
 
     private func makeSettingsWindow() -> NSWindow {

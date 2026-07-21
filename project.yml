@@ -10,8 +10,8 @@ settings:
   base:
     DEVELOPMENT_TEAM: Q2ZG8FQS59
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.2.7"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.2.9"
+    CURRENT_PROJECT_VERSION: "2"
     CODE_SIGN_STYLE: Automatic
 
 targets:
@@ -30,11 +30,10 @@ targets:
         INFOPLIST_KEY_LSUIElement: YES
         INFOPLIST_KEY_CFBundleDisplayName: Lunis
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
-        INFOPLIST_KEY_NSAppleEventsUsageDescription: "Lunis sleeps your Mac by asking System Events to sleep when a timer ends."
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_ENTITLEMENTS: Lunis.entitlements
         ENABLE_HARDENED_RUNTIME: YES
-        MARKETING_VERSION: "1.2.7"
+        MARKETING_VERSION: "1.2.9"
       configs:
         # Only the App Store (Release) build enforces the receipt check;
         # Debug runs have no receipt and must launch normally.

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Store distribution requires the sandbox. -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+
+    <!-- Sleep is driven by a direct IOKit call (IOPMSleepSystem, see
+         sleepTheMac()). The App Sandbox grants access to the power-management
+         root domain to every app by default — the profile at
+         /System/Library/Sandbox/Profiles/application.sb applies
+         `(power-assertions)` with no entitlement guard — so NO entitlement is
+         needed to sleep the Mac.
+
+         Earlier versions asked System Events to sleep over Apple events, which
+         required com.apple.security.temporary-exception.apple-events. App Review
+         rejects that temporary exception under Guideline 2.4.5(i), so it (and
+         the paired automation.apple-events key + NSAppleEventsUsageDescription)
+         were removed. Do not reintroduce them: the IOKit path is entitlement-free
+         and needs no user consent prompt. -->
+
+</dict>
+</plist>

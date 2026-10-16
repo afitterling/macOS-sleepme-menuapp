@@ -1,5 +1,5 @@
 #!/bin/bash
-# Generate marketing imagery for Lunair: an App Store screenshot and a
+# Generate marketing imagery for Lunis: an App Store screenshot and a
 # landing-page hero, both built around a faithful render of the app menu.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -82,7 +82,7 @@ let rows: [Row] = [
     Row("moon.zzz", "Bedtime Lightning"),
     Row(sep: true),
     Row("moon", "Wind Down the Lights", checked: true),
-    Row("crown", "Unlock Lunair Pro…"),
+    Row("crown", "Unlock Lunis Pro…"),
     Row(sep: true),
     Row("gearshape", "Settings…"),
     Row("power", "Quit"),
@@ -175,7 +175,7 @@ func compose(_ size: NSSize, landing: Bool, to path: String) {
     let leftX = 120 * scale
     appIcon(150 * scale, x: leftX, y: size.height - 150*scale - 110*scale)
 
-    text("Lunair", font(120*scale, .heavy), cream, x: leftX - 4*scale, y: size.height - 150*scale - 290*scale)
+    text("Lunis", font(120*scale, .heavy), cream, x: leftX - 4*scale, y: size.height - 150*scale - 290*scale)
     text("Wind your Mac down to sleep — gently.",
          font(40*scale, .medium), dim, x: leftX, y: size.height - 150*scale - 360*scale)
 
@@ -208,8 +208,8 @@ func compose(_ size: NSSize, landing: Bool, to path: String) {
     print("Wrote \(path)")
 }
 
-compose(NSSize(width: 2880, height: 1800), landing: false, to: root + "/marketing/lunair-appstore.png")
-compose(NSSize(width: 2400, height: 1260), landing: true,  to: root + "/marketing/lunair-hero.png")
+compose(NSSize(width: 2880, height: 1800), landing: false, to: root + "/marketing/lunis-appstore.png")
+compose(NSSize(width: 2400, height: 1260), landing: true,  to: root + "/marketing/lunis-hero.png")
 SWIFT
 
 echo "Marketing images in marketing/"

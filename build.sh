@@ -3,8 +3,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-APP_NAME="Lunair"
-BUNDLE_ID="tech.sp33c.sleeptimer"
+APP_NAME="Lunis"
+BUNDLE_ID="tech.sp33c.lunis"
 TEAM_ID="Q2ZG8FQS59"
 
 # Marketing version and build number are set with ./setVersion and live
@@ -26,7 +26,7 @@ SIGN_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null \
 rm -rf "$BUILD_DIR"
 mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
 
-swiftc -O -o "$APP_BUNDLE/Contents/MacOS/$APP_NAME" main.swift Store.swift Paywall.swift
+swiftc -O -o "$APP_BUNDLE/Contents/MacOS/$APP_NAME" main.swift
 
 # Regenerate the icon if missing, then bundle it.
 [ -f AppIcon.icns ] || ./make-icon.sh
@@ -38,7 +38,7 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>             <string>$APP_NAME</string>
-    <key>CFBundleDisplayName</key>      <string>Lunair</string>
+    <key>CFBundleDisplayName</key>      <string>Lunis</string>
     <key>CFBundleIdentifier</key>       <string>$BUNDLE_ID</string>
     <key>CFBundleVersion</key>          <string>$BUILD_NUMBER</string>
     <key>CFBundleShortVersionString</key><string>$VERSION</string>
@@ -78,4 +78,4 @@ pkgbuild \
 echo "Built $PKG_FILE"
 
 # Open the project in Xcode (brings it forward if already running).
-open -a Xcode "$(pwd)"
+open Lunis.xcodeproj

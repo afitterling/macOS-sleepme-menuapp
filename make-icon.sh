@@ -1,5 +1,5 @@
 #!/bin/bash
-# Render the Lunair icon (a glowing crescent moon over a starlit night sky) and
+# Render the Lunis icon (a glowing crescent moon over a starlit night sky) and
 # fan it out into every form the project needs:
 #   • AppIcon.icns                         — the swiftc/build.sh app bundle
 #   • Assets.xcassets/AppIcon.appiconset   — the Xcode / App Store build

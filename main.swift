@@ -1,4 +1,4 @@
-// Lunair — menu-bar sleep timer for macOS.
+// Lunis — menu-bar sleep timer for macOS.
 // Copyright (C) 2026 Alex Fitterling
 //
 // This program is free software: you can redistribute it and/or modify it
@@ -7,6 +7,8 @@
 // any later version. See <https://www.gnu.org/licenses/> for the full text.
 
 import Cocoa
+import ServiceManagement
+import IOKit.pwr_mgt
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -19,7 +21,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var currentDuration: TimeInterval?
     private var timerStartDate: Date?
     private var resetCount = 0
-    private var pendingDimOnly = false
 
     private var runWindow: NSWindow?
     private var nextLabel: NSTextField?
@@ -27,9 +28,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var remainingLabel: NSTextField?
     private var resetsLabel: NSTextField?
 
-    private var savedBrightness: Float?
-    private var brightnessMonitor: Any?
-    private var brightnessFallback: Timer?
+    // Dimming is done with translucent black overlay windows rather than by
+    // changing hardware brightness (the latter needs a private framework the
+    // App Sandbox forbids). `dimActivityTimer` polls for user input to lift
+    // the dim; `dimFallback` lifts it after a minute regardless.
+    private var dimWindows: [NSWindow] = []
+    private var dimActivityTimer: Timer?
+    private var dimFallback: Timer?
 
     private let dimDefaultsKey = "dimDisplayWhenSet"
     private var dimWhenSet: Bool {
@@ -55,16 +60,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
             let config = NSImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
-            let image = NSImage(systemSymbolName: "moon.zzz.fill", accessibilityDescription: "Lunair")?
+            let image = NSImage(systemSymbolName: "moon.zzz.fill", accessibilityDescription: "Lunis")?
                 .withSymbolConfiguration(config)
             image?.isTemplate = true
             button.image = image
             button.imagePosition = .imageLeft
             button.font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .medium)
         }
-        // Rebuild the menu whenever the Pro entitlement changes.
-        Store.shared.onChange = { [weak self] in self?.rebuildMenu() }
         rebuildMenu()
+
     }
 
     private func rebuildMenu() {
@@ -106,69 +110,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             menu.addItem(item)
         }
 
-        let custom = NSMenuItem(title: "Custom…",
+        let custom = NSMenuItem(title: "Custom Time",
                                 action: #selector(customTimer),
                                 keyEquivalent: "")
         custom.target = self
         custom.image = menuIcon("slider.horizontal.3")
         menu.addItem(custom)
 
-        let scheduleLocked = !Store.shared.isPro
-        let schedule = NSMenuItem(title: scheduleLocked ? "Schedule a Time… (Pro)" : "Schedule a Time…",
-                                  action: #selector(scheduleTime),
-                                  keyEquivalent: "")
-        schedule.target = self
-        schedule.image = menuIcon(scheduleLocked ? "lock" : "calendar")
-        menu.addItem(schedule)
-
         menu.addItem(.separator())
 
-        let dimNow = NSMenuItem(title: "Bedtime Lightning",
+        let dimNow = NSMenuItem(title: "Bedtime Lighting",
                                 action: #selector(dimNowAction),
                                 keyEquivalent: "")
         dimNow.target = self
         dimNow.image = menuIcon("moon.zzz")
+        // Checkmark while the manual dim is active; selecting it again lifts it.
+        dimNow.state = (dimIsManual && !dimWindows.isEmpty) ? .on : .off
         menu.addItem(dimNow)
 
         menu.addItem(.separator())
 
-        let dim = NSMenuItem(title: "Wind Down the Lights When Timer Starts",
-                             action: #selector(toggleDim),
-                             keyEquivalent: "")
-        dim.target = self
-        dim.state = dimWhenSet ? .on : .off
-        dim.image = menuIcon("moon")
-        menu.addItem(dim)
-
-        let reset = NSMenuItem(title: "Reset Timer on Activity",
-                               action: #selector(toggleReset),
-                               keyEquivalent: "")
-        reset.target = self
-        reset.state = resetOnActivity ? .on : .off
-        reset.image = menuIcon("arrow.clockwise")
-        menu.addItem(reset)
-
-
-        let settings = NSMenuItem(title: "Settings…",
+        let settings = NSMenuItem(title: "Settings",
                                   action: #selector(showSettings),
                                   keyEquivalent: ",")
         settings.target = self
         settings.image = menuIcon("gearshape")
         menu.addItem(settings)
-
-        if Store.shared.isPro {
-            let pro = NSMenuItem(title: "Lunair Pro — Unlocked", action: nil, keyEquivalent: "")
-            pro.isEnabled = false
-            pro.image = menuIcon("crown")
-            menu.addItem(pro)
-        } else {
-            let pro = NSMenuItem(title: "Unlock Lunair Pro…",
-                                 action: #selector(showPaywall),
-                                 keyEquivalent: "")
-            pro.target = self
-            pro.image = menuIcon("crown")
-            menu.addItem(pro)
-        }
 
         menu.addItem(.separator())
 
@@ -198,33 +165,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return image
     }
 
-    @objc private func toggleReset() {
-        resetOnActivity.toggle()
-        rebuildMenu()
-    }
-
     @objc private func startTimer(_ sender: NSMenuItem) {
         guard let seconds = sender.representedObject as? TimeInterval else { return }
         startTimer(seconds: seconds)
     }
 
-    private func startTimer(seconds: TimeInterval, dimOnly: Bool = false) {
+    private func startTimer(seconds: TimeInterval) {
         sleepTimer?.invalidate()
         countdownTimer?.invalidate()
 
         currentDuration = seconds
         timerStartDate = Date()
         resetCount = 0
-        pendingDimOnly = dimOnly
         sleepDate = Date().addingTimeInterval(seconds)
 
         sleepTimer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { [weak self] _ in
-            if dimOnly {
-                self?.iWantToSleep()
-                self?.cancelTimer()
-            } else {
-                self?.sleepNow()
-            }
+            self?.sleepNow()
         }
 
         countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
@@ -234,10 +190,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rebuildMenu()
 
         if dimWhenSet {
-            // Wind the lights down to 10% as soon as the timer starts. The
-            // countdown keeps running, and brightness restores on mouse move
-            // or after 1m.
-            dimScreen(to: setDimBrightness)
+            // Wind the lights down as soon as the timer starts. The countdown
+            // keeps running, and brightness restores on activity or after 1m.
+            dimScreen(to: dimBrightness)
         }
     }
 
@@ -257,10 +212,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func systemIdleSeconds() -> CFTimeInterval {
-        // Seconds since the last keyboard/mouse input. Needs no special
-        // permission, unlike a global event monitor.
+        // Seconds since the last user input. Needs no special permission,
+        // unlike a global event monitor. kCGAnyInputEventType (~0) misses
+        // system-defined events — hardware brightness/media keys — so fold
+        // those in separately: pressing brightness-up while the dim overlay is
+        // showing must count as activity and lift the dim (verified: type 14
+        // resets on brightness keys while ~0 does not).
         let anyInput = CGEventType(rawValue: ~0) ?? .null
-        return CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: anyInput)
+        let sysDefined = CGEventType(rawValue: 14) ?? .null   // NX_SYSDEFINED
+        return min(
+            CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: anyInput),
+            CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: sysDefined))
     }
 
     private func updateTitle() {
@@ -337,8 +299,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             remainingLabel?.stringValue = clock(Int(sleepDate.timeIntervalSinceNow.rounded()))
             let formatter = DateFormatter()
             formatter.timeStyle = .short
-            let action = pendingDimOnly ? "Dim to 30%" : "Sleep"
-            nextLabel?.stringValue = "Next: \(action) at \(formatter.string(from: sleepDate))"
+            nextLabel?.stringValue = "Next: Sleep at \(formatter.string(from: sleepDate))"
         }
         if let start = timerStartDate {
             elapsedLabel?.stringValue = "Elapsed: " + clock(Int(Date().timeIntervalSince(start).rounded()))
@@ -367,8 +328,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rebuildMenu()
     }
 
+    // Bedtime Lighting: a manual, persistent reading light. Toggles from the
+    // menu. Deliberately disconnected from the automatic timer dim: it does NOT
+    // lift on mouse/keyboard activity and has no auto-lift timeout.
     @objc private func dimNowAction() {
-        dimScreen(to: windDownBrightness)
+        if dimIsManual, !dimWindows.isEmpty {
+            restoreBrightness()
+        } else {
+            dimScreen(to: bedtimeLightBrightness, manual: true)
+        }
+        rebuildMenu()
     }
 
     @objc private func sleepNowAction() {
@@ -376,104 +345,187 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func sleepNow() {
-        runPmset(["sleepnow"])
+        sleepTheMac()
         cancelTimer()
     }
 
-    private func runPmset(_ arguments: [String]) {
-        let task = Process()
-        task.launchPath = "/usr/bin/pmset"
-        task.arguments = arguments
-        try? task.run()
-    }
-
-    // MARK: - Brightness
-
-    // "Sleep Time" winds the screen down to 30%; the "dim when timer set"
-    // toggle takes it lower, to 10%.
-    private let windDownBrightness: Float = 0.30
-    private let setDimBrightness: Float = 0.10
-
-    @objc private func iWantToSleep() {
-        dimScreen(to: windDownBrightness)
-    }
-
-    // Remember the current brightness, dim, then restore it the next time the
-    // user moves the mouse (after a short grace period so the click that
-    // triggered the dim doesn't immediately undo it).
-    private func dimScreen(to value: Float) {
-        if savedBrightness == nil { savedBrightness = currentDisplayBrightness() }
-        setDisplayBrightness(value)
-        armBrightnessRestore()
-        // Fall back to the original brightness after a minute even if the user
-        // never moves the mouse.
-        brightnessFallback?.invalidate()
-        brightnessFallback = Timer.scheduledTimer(withTimeInterval: 60, repeats: false) { [weak self] _ in
-            self?.restoreBrightness()
+    // Ask the kernel's power-management root domain to sleep directly. The App
+    // Sandbox grants every app this access unconditionally — the profile at
+    // /System/Library/Sandbox/Profiles/application.sb applies `(power-assertions)`
+    // with no entitlement guard, which allows opening RootDomainUserClient via
+    // IOPMFindPowerManagement. IOPMSleepSystem succeeds for root or the console
+    // user (per IOKit's IOPMLib.h); Lunis always runs as the logged-in console
+    // user, so no elevated privileges are needed.
+    //
+    // This replaced an earlier `tell application "System Events" to sleep`
+    // approach that required the temporary-exception.apple-events entitlement.
+    // App Review rejects that exception under Guideline 2.4.5(i); the direct
+    // IOKit path needs no entitlements, no Apple events, and no consent prompt.
+    private func sleepTheMac() {
+        let port = IOPMFindPowerManagement(kIOMainPortDefault)
+        guard port != MACH_PORT_NULL else {
+            NSLog("Lunis: sleep failed — could not connect to power management")
+            return
+        }
+        defer { IOServiceClose(port) }
+        let result = IOPMSleepSystem(port)
+        if result != kIOReturnSuccess {
+            NSLog("Lunis: sleep failed — IOPMSleepSystem returned 0x%08x", result)
         }
     }
 
-    private func armBrightnessRestore() {
-        if let monitor = brightnessMonitor {
-            NSEvent.removeMonitor(monitor)
-            brightnessMonitor = nil
+    // MARK: - Dimming
+
+    // The screen is dimmed by floating translucent black windows over every
+    // display. `dimBrightness` is the target perceived brightness the overlay
+    // dims to (0 = black, 1 = no dim), configurable from Settings.
+    private let dimBrightnessKey = "dimBrightness"
+    private var dimBrightness: Float {
+        get {
+            UserDefaults.standard.object(forKey: dimBrightnessKey) == nil
+                ? 0.15 : UserDefaults.standard.float(forKey: dimBrightnessKey)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-            guard let self, self.savedBrightness != nil else { return }
-            self.brightnessMonitor = NSEvent.addGlobalMonitorForEvents(
-                matching: [.mouseMoved, .leftMouseDown, .rightMouseDown, .scrollWheel]
-            ) { [weak self] _ in
+        set { UserDefaults.standard.set(newValue, forKey: dimBrightnessKey) }
+    }
+
+    // Bedtime Lighting has its own light level, independent of the timer dim.
+    private let bedtimeLightKey = "bedtimeLightBrightness"
+    private var bedtimeLightBrightness: Float {
+        get {
+            UserDefaults.standard.object(forKey: bedtimeLightKey) == nil
+                ? 0.15 : UserDefaults.standard.float(forKey: bedtimeLightKey)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: bedtimeLightKey) }
+    }
+
+    // How long the dim has been up; used to ignore the input that triggered it.
+    private let dimGrace: TimeInterval = 2
+
+    // Two disconnected dim features share the overlay plumbing:
+    //  - automatic timer dim (manual: false): lifts on any user activity after
+    //    the grace period, or after a minute, whichever comes first;
+    //  - manual Bedtime Lighting (manual: true): a persistent reading light —
+    //    survives mouse/keyboard use, has no timeout, and lifts only on the
+    //    hardware brightness keys or by toggling the menu item again.
+    private var dimIsManual = false
+
+    private func dimScreen(to brightness: Float, manual: Bool = false) {
+        dimIsManual = manual
+        let alpha = CGFloat(1 - min(max(brightness, 0), 1))
+        showDimOverlay(alpha: alpha)
+        armDimRestore()
+        dimFallback?.invalidate()
+        dimFallback = nil
+        if !manual {
+            dimFallback = Timer.scheduledTimer(withTimeInterval: 60, repeats: false) { [weak self] _ in
                 self?.restoreBrightness()
             }
         }
     }
 
-    private func restoreBrightness() {
-        brightnessFallback?.invalidate()
-        brightnessFallback = nil
-        if let monitor = brightnessMonitor {
-            NSEvent.removeMonitor(monitor)
-            brightnessMonitor = nil
+    private func showDimOverlay(alpha: CGFloat) {
+        if dimWindows.isEmpty {
+            for screen in NSScreen.screens {
+                let window = NSWindow(contentRect: screen.frame, styleMask: .borderless,
+                                      backing: .buffered, defer: false)
+                window.isReleasedWhenClosed = false
+                window.backgroundColor = .black
+                window.isOpaque = false
+                window.hasShadow = false
+                window.ignoresMouseEvents = true       // purely visual; never steals input
+                window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+                window.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()))
+                window.orderFrontRegardless()
+                dimWindows.append(window)
+            }
         }
-        guard let saved = savedBrightness else { return }
-        setDisplayBrightness(saved)
-        savedBrightness = nil
+        for window in dimWindows { window.alphaValue = alpha }
     }
 
-    private func currentDisplayBrightness() -> Float {
-        let path = "/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices"
-        guard let handle = dlopen(path, RTLD_NOW) else { return windDownBrightness }
-        defer { dlclose(handle) }
-        guard let sym = dlsym(handle, "DisplayServicesGetBrightness") else { return windDownBrightness }
-        typealias GetBrightness = @convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32
-        let getBrightness = unsafeBitCast(sym, to: GetBrightness.self)
-        var value: Float = windDownBrightness
-        _ = getBrightness(CGMainDisplayID(), &value)
-        return value
+    // Poll for input rather than installing a global event monitor (the App
+    // Sandbox forbids the latter). The idle counters reset to ~0 on activity
+    // and need no special permission. Automatic dims lift on any input; the
+    // manual Bedtime Lighting only on the brightness/media keys.
+    private func armDimRestore() {
+        dimActivityTimer?.invalidate()
+        let armedAt = Date()
+        dimActivityTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            // Wait out the grace window so the click that dimmed the screen
+            // doesn't immediately lift it.
+            guard Date().timeIntervalSince(armedAt) > self.dimGrace else { return }
+            let idle = self.dimIsManual
+                ? self.brightnessKeyIdleSeconds()
+                : self.systemIdleSeconds()
+            if idle < 1 { self.restoreBrightness() }
+        }
     }
 
-    private func setDisplayBrightness(_ value: Float) {
-        // DisplayServices is private but works across Intel and Apple Silicon
-        // without the accessibility permission a key-event approach would need.
-        let path = "/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices"
-        guard let handle = dlopen(path, RTLD_NOW) else { return }
-        defer { dlclose(handle) }
-        guard let sym = dlsym(handle, "DisplayServicesSetBrightness") else { return }
-        typealias SetBrightness = @convention(c) (CGDirectDisplayID, Float) -> Int32
-        let setBrightness = unsafeBitCast(sym, to: SetBrightness.self)
+    // Seconds since the last system-defined event (hardware brightness/media
+    // keys) — the only input that lifts the manual Bedtime Lighting.
+    private func brightnessKeyIdleSeconds() -> CFTimeInterval {
+        let sysDefined = CGEventType(rawValue: 14) ?? .null   // NX_SYSDEFINED
+        return CGEventSource.secondsSinceLastEventType(.combinedSessionState,
+                                                       eventType: sysDefined)
+    }
 
-        let clamped = min(max(value, 0), 1)
-        for screen in NSScreen.screens {
-            let key = NSDeviceDescriptionKey("NSScreenNumber")
-            if let number = screen.deviceDescription[key] as? NSNumber {
-                _ = setBrightness(number.uint32Value, clamped)
+    private func restoreBrightness() {
+        dimFallback?.invalidate()
+        dimFallback = nil
+        dimActivityTimer?.invalidate()
+        dimActivityTimer = nil
+        for window in dimWindows { window.orderOut(nil) }
+        dimWindows.removeAll()
+        dimIsManual = false
+        rebuildMenu()   // clear the Bedtime Lighting checkmark
+    }
+
+    // MARK: - Settings controls
+
+    // Login item registration. SMAppService is the sandbox-safe, macOS 13+ way
+    // to launch at login; it registers reliably only for a signed app bundle.
+    private var launchAtLogin: Bool {
+        get { SMAppService.mainApp.status == .enabled }
+        set {
+            do {
+                if newValue { try SMAppService.mainApp.register() }
+                else { try SMAppService.mainApp.unregister() }
+            } catch {
+                NSLog("Lunis: launch-at-login toggle failed — \(error)")
             }
         }
     }
 
-    @objc private func toggleDim() {
-        dimWhenSet.toggle()
-        rebuildMenu()
+    @objc private func setLaunchAtLogin(_ sender: NSButton) {
+        launchAtLogin = (sender.state == .on)
+        // Reflect what actually took effect in case registration failed.
+        sender.state = launchAtLogin ? .on : .off
+    }
+
+    @objc private func setDimWhenSet(_ sender: NSButton) {
+        dimWhenSet = (sender.state == .on)
+    }
+
+    @objc private func setResetOnActivity(_ sender: NSButton) {
+        resetOnActivity = (sender.state == .on)
+    }
+
+    @objc private func dimLevelChanged(_ sender: NSSlider) {
+        dimBrightness = sender.floatValue
+        // Live-update the overlay only if the automatic timer dim is showing.
+        if !dimWindows.isEmpty, !dimIsManual {
+            let alpha = CGFloat(1 - min(max(sender.floatValue, 0), 1))
+            for window in dimWindows { window.alphaValue = alpha }
+        }
+    }
+
+    @objc private func bedtimeLevelChanged(_ sender: NSSlider) {
+        bedtimeLightBrightness = sender.floatValue
+        // Live-update the overlay only if Bedtime Lighting is currently on.
+        if !dimWindows.isEmpty, dimIsManual {
+            let alpha = CGFloat(1 - min(max(sender.floatValue, 0), 1))
+            for window in dimWindows { window.alphaValue = alpha }
+        }
     }
 
     // MARK: - Custom timer
@@ -499,61 +551,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startTimer(seconds: minutes * 60)
     }
 
-    @objc private func showPaywall() {
-        Paywall.shared.show()
-    }
-
-    @objc private func scheduleTime() {
-        // Scheduling is a Lunair Pro feature.
-        guard Store.shared.isPro else {
-            Paywall.shared.show()
-            return
-        }
-        let alert = NSAlert()
-        alert.messageText = "Schedule a Time"
-        alert.informativeText = "Sleep at what time? (e.g. 23:30 or 11:30 PM)"
-        alert.addButton(withTitle: "Schedule")
-        alert.addButton(withTitle: "Cancel")
-
-        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
-        field.placeholderString = "HH:mm"
-        alert.accessoryView = field
-        alert.window.initialFirstResponder = field
-
-        NSApp.activate(ignoringOtherApps: true)
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-
-        let trimmed = field.stringValue.trimmingCharacters(in: .whitespaces)
-        guard let target = nextDate(matching: trimmed) else {
-            warn("Couldn't read that time. Try a format like 23:30 or 11:30 PM.")
-            return
-        }
-        // At the scheduled time, wind the display down to 30% rather than
-        // sleeping the Mac outright.
-        startTimer(seconds: target.timeIntervalSinceNow, dimOnly: true)
-    }
-
-    // Parse a clock time and return the next future Date that matches it,
-    // rolling over to tomorrow if the time has already passed today.
-    private func nextDate(matching text: String) -> Date? {
-        let formats = ["HH:mm", "H:mm", "h:mm a", "h a", "ha"]
-        let parser = DateFormatter()
-        parser.locale = Locale(identifier: "en_US_POSIX")
-        var components: DateComponents?
-        for format in formats {
-            parser.dateFormat = format
-            if let date = parser.date(from: text) {
-                components = Calendar.current.dateComponents([.hour, .minute], from: date)
-                break
-            }
-        }
-        guard let comps = components else { return nil }
-        let calendar = Calendar.current
-        guard let next = calendar.nextDate(after: Date(), matching: comps,
-                                           matchingPolicy: .nextTime) else { return nil }
-        return next
-    }
-
     private func warn(_ message: String) {
         let alert = NSAlert()
         alert.messageText = message
@@ -568,9 +565,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if settingsWindow == nil {
             settingsWindow = makeSettingsWindow()
         }
+        guard let window = settingsWindow else { return }
+        // Only recentre when it isn't already on screen, so reopening doesn't
+        // yank a window the user has moved back to the middle.
+        if !window.isVisible { window.center() }
         NSApp.activate(ignoringOtherApps: true)
-        settingsWindow?.makeKeyAndOrderFront(nil)
-        settingsWindow?.center()
+        window.makeKeyAndOrderFront(nil)
+        // As an .accessory app we can't count on activate() making us frontmost,
+        // and an ordinary orderFront leaves the window buried behind whatever is.
+        window.orderFrontRegardless()
     }
 
     private func makeSettingsWindow() -> NSWindow {
@@ -582,7 +585,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let build = info?["CFBundleVersion"] as? String ?? "—"
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 340, height: 180),
+            contentRect: NSRect(x: 0, y: 0, width: 360, height: 320),
             styleMask: [.titled, .closable],
             backing: .buffered, defer: false)
         window.title = "Settings"
@@ -597,6 +600,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             attributes: [.font: NSFont.systemFont(ofSize: 9, weight: .regular),
                          .foregroundColor: NSColor.secondaryLabelColor]))
         let titleLabel = NSTextField(labelWithAttributedString: branding)
+
+        // Preferences — checkboxes plus the timer dim-level slider.
+        let launch = makeCheckbox("Launch at login",
+                                  on: launchAtLogin, action: #selector(setLaunchAtLogin(_:)))
+        let windDown = makeCheckbox("Wind down the lights when the timer starts",
+                                    on: dimWhenSet, action: #selector(setDimWhenSet(_:)))
+        let resetActivity = makeCheckbox("Reset timer on activity",
+                                         on: resetOnActivity, action: #selector(setResetOnActivity(_:)))
+
+        let dimRow = sliderRow(caption: "Dim level",
+                               value: dimBrightness,
+                               action: #selector(dimLevelChanged(_:)))
+
+        let prefs = NSStackView(views: [launch, windDown, resetActivity, dimRow])
+        prefs.orientation = .vertical
+        prefs.alignment = .leading
+        prefs.spacing = 8
+
+        // Bedtime Lighting — its own section: a persistent reading light,
+        // separate from the timer dim. Lifts on brightness keys or via the
+        // menu toggle.
+        let bedtimeHeader = makeLabel("Bedtime Lighting",
+                                      font: .systemFont(ofSize: 13, weight: .semibold),
+                                      color: .labelColor)
+        let bedtimeHint = makeLabel(
+            "Persistent reading light. Turn off with the brightness keys\n"
+          + "or by choosing Bedtime Lighting again from the menu.",
+            font: .systemFont(ofSize: 11), color: .secondaryLabelColor)
+        let bedtimeRow = sliderRow(caption: "Light level",
+                                   value: bedtimeLightBrightness,
+                                   action: #selector(bedtimeLevelChanged(_:)))
+        let bedtime = NSStackView(views: [bedtimeHeader, bedtimeHint, bedtimeRow])
+        bedtime.orientation = .vertical
+        bedtime.alignment = .leading
+        bedtime.spacing = 8
+
         let rows = NSStackView(views: [
             settingRow("Bundle Identifier", bundleID),
             settingRow("Version", version),
@@ -606,7 +645,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rows.alignment = .leading
         rows.spacing = 8
 
-        let stack = NSStackView(views: [titleLabel, rows])
+        let stack = NSStackView(views: [titleLabel, prefs, makeSeparator(),
+                                        bedtime, makeSeparator(), rows])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 16
@@ -619,7 +659,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 stack.leadingAnchor.constraint(equalTo: content.leadingAnchor),
                 stack.trailingAnchor.constraint(equalTo: content.trailingAnchor),
                 stack.topAnchor.constraint(equalTo: content.topAnchor),
+                stack.bottomAnchor.constraint(equalTo: content.bottomAnchor),
             ])
+            // Size the window to the stack's natural height so nothing is
+            // clipped; the stack's edgeInsets provide the bottom padding.
+            content.layoutSubtreeIfNeeded()
+            window.setContentSize(content.fittingSize)
         }
         return window
     }
@@ -643,8 +688,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return label
     }
 
+    // A captioned brightness slider row (0 = black … 0.7 = mild dim).
+    private func sliderRow(caption: String, value: Float, action: Selector) -> NSStackView {
+        let label = makeLabel(caption, font: .systemFont(ofSize: 12),
+                              color: .secondaryLabelColor)
+        let slider = NSSlider(value: Double(value), minValue: 0.0, maxValue: 0.7,
+                              target: self, action: action)
+        slider.translatesAutoresizingMaskIntoConstraints = false
+        slider.widthAnchor.constraint(equalToConstant: 180).isActive = true
+        let row = NSStackView(views: [label, slider])
+        row.orientation = .horizontal
+        row.spacing = 10
+        return row
+    }
+
+    private func makeCheckbox(_ title: String, on: Bool, action: Selector) -> NSButton {
+        let button = NSButton(checkboxWithTitle: title, target: self, action: action)
+        button.state = on ? .on : .off
+        return button
+    }
+
+    private func makeSeparator() -> NSBox {
+        let box = NSBox()
+        box.boxType = .separator
+        box.translatesAutoresizingMaskIntoConstraints = false
+        box.widthAnchor.constraint(equalToConstant: 320).isActive = true
+        return box
+    }
+
     @objc private func contactMaintainer() {
-        if let url = URL(string: "https://sleeptimer.sp33c.tech/support") {
+        if let url = URL(string: "https://lunis.sp33c.tech/support") {
             NSWorkspace.shared.open(url)
         }
     }
@@ -653,6 +726,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.terminate(nil)
     }
 }
+
+#if APP_STORE
+// Paid, up-front App Store app: require a Mac App Store receipt. If one isn't
+// present, exit(173) so macOS fetches a fresh receipt (and refuses to run
+// copies that were never purchased). Gated to the App Store build so the
+// Developer ID build and Xcode debug runs — which have no receipt — still run.
+if (try? Bundle.main.appStoreReceiptURL?.checkResourceIsReachable()) != true {
+    exit(173)
+}
+#endif
 
 // Program entry. We're on the main thread at launch, so it's safe to assume
 // the main actor for the @MainActor-isolated AppDelegate.

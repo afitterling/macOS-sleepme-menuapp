@@ -46,5 +46,3 @@ schemes:
         Lunis: all
     run:
       config: Debug
-      # Local StoreKit testing for the Lunis Pro unlock (no App Store Connect needed).
-      storeKitConfiguration: Lunis.storekit
